@@ -1,7 +1,7 @@
 /**
  * ARIA5 Conversational Threat Intelligence Assistant
  * 
- * Phase 4.3: Interactive AI assistant for natural language threat intelligence queries
+ * Interactive AI assistant for natural language threat intelligence queries
  * 
  * Features:
  * - Natural language query processing

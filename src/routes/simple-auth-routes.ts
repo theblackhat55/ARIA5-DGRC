@@ -91,7 +91,7 @@ export function createSimpleAuthRoutes() {
         `);
       }
       
-      // Simple password check (for Phase 1 demo - accepts demo123 or matching hash)
+      // Simple password check (for demo - accepts demo123 or matching hash)
       let isValidPassword = false;
       if (password === 'demo123' || user.password_hash === 'demo123' || user.password_hash === password) {
         isValidPassword = true;

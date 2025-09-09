@@ -23,7 +23,7 @@ import { apiThreatIntelRoutes } from './routes/api-threat-intelligence';
 import { tiGrcRoutes } from './routes/api-ti-grc-integration';
 import complianceAutomationApi from './routes/compliance-automation-api';
 // MULTI-TENANCY FEATURE - TEMPORARILY DISABLED
-// TODO: Re-enable when Phase 4 multi-tenancy features are needed
+// TODO: Re-enable when multi-tenancy features are needed
 // import enterpriseMultiTenancyApi from './routes/enterprise-multitenancy-api';
 
 // Import security middleware
@@ -34,7 +34,7 @@ import { cleanLayout } from './templates/layout-clean';
 import { loginPage } from './templates/auth/login';
 import { landingPage } from './templates/landing';
 
-// Import Phase 1 Demo components
+// Import Demo components
 import { renderPhase1Demo } from './templates/phase1-demo';
 
 const app = new Hono();
@@ -170,19 +170,22 @@ app.get('/debug/services-test', async (c) => {
     const result = await c.env.DB.prepare(`
       SELECT 
         s.id,
+        s.service_id,
         s.name,
         s.description,
-        s.status,
-        s.criticality_level,
-        s.confidentiality_score,
-        s.integrity_score,
-        s.availability_score,
-        s.cia_score,
-        s.aggregate_risk_score,
-        s.created_at
+        s.service_status as status,
+        s.criticality as criticality_level,
+        s.confidentiality_numeric as confidentiality_score,
+        s.integrity_numeric as integrity_score,
+        s.availability_numeric as availability_score,
+        s.criticality_score as cia_score,
+        s.risk_score as aggregate_risk_score,
+        s.created_at,
+        s.business_department,
+        s.service_category
       FROM services s
-      WHERE s.status = 'active'
-      ORDER BY s.cia_score DESC, s.name ASC
+      WHERE s.service_status = 'Active'
+      ORDER BY s.criticality_score DESC, s.name ASC
       LIMIT 10
     `).all();
     
@@ -530,7 +533,7 @@ app.get('/debug/operations-feeds', async (c) => {
   }
 });
 
-// Phase 1 Demo Route (No Authentication Required)
+// Demo Route (No Authentication Required)
 app.get('/phase1-demo', async (c) => {
   return c.html(await renderPhase1Demo(c));
 });
@@ -544,16 +547,16 @@ app.route('/risk', createRiskRoutesARIA5());
 // Services Management (requires authentication)
 app.get('/services', authMiddleware, async (c) => {
   try {
-    // Get services statistics from existing tables
+    // Get services statistics from services table (using operations-fixed.ts schema)
     const servicesStats = await c.env.DB.prepare(`
       SELECT 
         COUNT(*) as total_services,
-        SUM(CASE WHEN criticality_level = 'critical' THEN 1 ELSE 0 END) as critical_services,
-        SUM(CASE WHEN criticality_level = 'high' THEN 1 ELSE 0 END) as high_services,
-        AVG(cia_score) as avg_cia_score,
-        AVG(aggregate_risk_score) as avg_risk_score
+        SUM(CASE WHEN criticality = 'Critical' THEN 1 ELSE 0 END) as critical_services,
+        SUM(CASE WHEN criticality = 'High' THEN 1 ELSE 0 END) as high_services,
+        AVG(criticality_score) as avg_cia_score,
+        AVG(risk_score) as avg_risk_score
       FROM services 
-      WHERE status = 'active'
+      WHERE service_status = 'Active'
     `).first();
 
     return c.html(
@@ -563,9 +566,21 @@ app.get('/services', authMiddleware, async (c) => {
         content: html`
           <div class="min-h-screen bg-gray-50 py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Services Management</h1>
-                <p class="mt-2 text-gray-600">Service inventory with CIA scoring and risk cascade analysis</p>
+              <div class="mb-8 flex justify-between items-start">
+                <div>
+                  <h1 class="text-3xl font-bold text-gray-900">Services Management</h1>
+                  <p class="mt-2 text-gray-600">Service inventory with CIA scoring and risk cascade analysis</p>
+                </div>
+                <div class="flex space-x-3">
+                  <a href="/operations/services" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    <i class="fas fa-cog mr-2"></i>
+                    Advanced Management
+                  </a>
+                  <a href="/operations/services" onclick="event.preventDefault(); window.open('/operations/services', '_blank')" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add Service
+                  </a>
+                </div>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -617,7 +632,7 @@ app.get('/services', authMiddleware, async (c) => {
                 <div class="flex items-center">
                   <i class="fas fa-network-wired text-emerald-500 mr-3"></i>
                   <div>
-                    <h3 class="text-lg font-medium text-emerald-800">Phase 1: Service-Centric Dynamic GRC</h3>
+                    <h3 class="text-lg font-medium text-emerald-800">Service-Centric Dynamic GRC</h3>
                     <p class="mt-1 text-sm text-emerald-600">
                       Service management with CIA scoring and risk cascade propagation. All ${servicesStats?.total_services || 0} services with real CIA ratings.
                     </p>
@@ -636,25 +651,28 @@ app.get('/services', authMiddleware, async (c) => {
                     const response = await fetch('/debug/services-test');
                     const data = await response.json();
                     
-                    if (data.success && data.services_result.results) {
+                    if (data.success && data.services_result.results && data.services_result.results.length > 0) {
                       const tbody = document.getElementById('services-table-body');
                       tbody.innerHTML = data.services_result.results.map(service => \`
                         <tr>
                           <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">\${service.name}</div>
                             <div class="text-sm text-gray-500">\${service.description || 'No description'}</div>
+                            <div class="text-xs text-gray-400">\${service.business_department || ''} • \${service.service_category || ''}</div>
                           </td>
                           <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full \${
-                              service.criticality_level === 'critical' ? 'bg-red-100 text-red-800' :
-                              service.criticality_level === 'high' ? 'bg-orange-100 text-orange-800' :
-                              'bg-yellow-100 text-yellow-800'
+                              service.criticality_level === 'Critical' ? 'bg-red-100 text-red-800' :
+                              service.criticality_level === 'High' ? 'bg-orange-100 text-orange-800' :
+                              service.criticality_level === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-green-100 text-green-800'
                             }">
                               \${service.criticality_level}
                             </span>
                           </td>
                           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            \${service.cia_score ? Number(service.cia_score).toFixed(1) : 'N/A'}
+                            <div>\${service.cia_score ? Number(service.cia_score).toFixed(0) + '/100' : 'N/A'}</div>
+                            <div class="text-xs text-gray-500">C:\${service.confidentiality_score || 0} I:\${service.integrity_score || 0} A:\${service.availability_score || 0}</div>
                           </td>
                           <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
@@ -664,7 +682,21 @@ app.get('/services', authMiddleware, async (c) => {
                         </tr>
                       \`).join('');
                     } else {
-                      document.getElementById('services-table-body').innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No services found</td></tr>';
+                      document.getElementById('services-table-body').innerHTML = \`
+                        <tr>
+                          <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                            <div class="flex flex-col items-center">
+                              <i class="fas fa-sitemap text-3xl text-gray-300 mb-3"></i>
+                              <div class="text-lg font-medium text-gray-900 mb-2">No services found</div>
+                              <div class="text-sm text-gray-600 mb-4">Create your first service to get started with service management</div>
+                              <a href="/operations/services" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">
+                                <i class="fas fa-plus mr-2"></i>
+                                Add Service
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      \`;
                     }
                   } catch (error) {
                     console.error('Error loading services:', error);
@@ -823,14 +855,14 @@ app.get('/risk-controls', authMiddleware, async (c) => {
                 </div>
               </div>
 
-              <!-- Phase 5 Integration Notice -->
+              <!-- Enhanced Integration Notice -->
               <div class="bg-indigo-50 border-l-4 border-indigo-500 p-6">
                 <div class="flex items-center">
                   <i class="fas fa-cogs text-indigo-500 mr-3"></i>
                   <div>
-                    <h3 class="text-lg font-medium text-indigo-800">Phase 5: Risk-First Control Mapping</h3>
+                    <h3 class="text-lg font-medium text-indigo-800">Risk-First Control Mapping</h3>
                     <p class="mt-1 text-sm text-indigo-600">
-                      Advanced risk-control mapping capabilities available in Phase 5 implementation.
+                      Advanced risk-control mapping capabilities now available.
                       Access enhanced compliance automation at <code>/compliance/automation</code>.
                     </p>
                   </div>
@@ -878,21 +910,21 @@ app.route('/api/ai-threat', aiThreatAnalysisRoutes);
 import apiRiskConsistencyRoutes from './routes/api-risk-consistency';
 app.route('/api/risk-consistency', apiRiskConsistencyRoutes);
 
-// Phase 3: Advanced Compliance Automation API (requires authentication)
+// Advanced Compliance Automation API (requires authentication)
 app.route('/api/compliance-automation', complianceAutomationApi);
 
-// Phase 4: Enterprise Multi-Tenancy API - TEMPORARILY DISABLED
-// TODO: Re-enable when Phase 4 multi-tenancy features are needed
+// Enterprise Multi-Tenancy API - TEMPORARILY DISABLED
+// TODO: Re-enable when multi-tenancy features are needed
 // app.route('/api/enterprise', enterpriseMultiTenancyApi);
 
-// MISSING PAGES - Phase 4-5 Features (requires authentication)
+// Enhanced Features (requires authentication)
 
 // Risks page (plural) - redirect to main risk page
 app.get('/risks', (c) => {
   return c.redirect('/risk');
 });
 
-// AI Analytics Dashboard (Phase 4)
+// AI Analytics Dashboard
 app.get('/ai-analytics', authMiddleware, async (c) => {
   return c.html(
     cleanLayout({
@@ -977,7 +1009,7 @@ app.get('/ai-analytics', authMiddleware, async (c) => {
               <div class="flex items-center">
                 <i class="fas fa-info-circle text-blue-500 mr-3"></i>
                 <div>
-                  <h3 class="text-lg font-medium text-blue-800">Phase 4: Enhanced AI Orchestration</h3>
+                  <h3 class="text-lg font-medium text-blue-800">Enhanced AI Orchestration</h3>
                   <p class="mt-1 text-sm text-blue-600">
                     This dashboard provides insights from ML models, risk prediction algorithms, and automated response systems.
                     Full API integration available at <code>/api/ai/*</code> endpoints.
@@ -992,7 +1024,7 @@ app.get('/ai-analytics', authMiddleware, async (c) => {
   );
 });
 
-// Evidence Collection Dashboard (Phase 5)
+// Evidence Collection Dashboard
 app.get('/evidence', authMiddleware, async (c) => {
   return c.html(
     cleanLayout({
@@ -1096,7 +1128,7 @@ app.get('/evidence', authMiddleware, async (c) => {
               <div class="flex items-center">
                 <i class="fas fa-info-circle text-purple-500 mr-3"></i>
                 <div>
-                  <h3 class="text-lg font-medium text-purple-800">Phase 5: Risk-First Compliance Transformation</h3>
+                  <h3 class="text-lg font-medium text-purple-800">Risk-First Compliance Transformation</h3>
                   <p class="mt-1 text-sm text-purple-600">
                     Automated evidence collection with dynamic risk-control mapping and contextual compliance monitoring.
                     Access detailed evidence management at <code>/compliance/evidence</code>.
@@ -1227,7 +1259,7 @@ app.get('/predictions', authMiddleware, async (c) => {
   );
 });
 
-// Telemetry Pipeline Dashboard (Phase 3)
+// Telemetry Pipeline Dashboard
 app.get('/telemetry', authMiddleware, async (c) => {
   return c.html(
     cleanLayout({
@@ -1277,7 +1309,7 @@ app.get('/telemetry', authMiddleware, async (c) => {
                 <div>[2025-09-09 13:15:19] RISK: Auto-generated risk for API rate limiting (Score: 7.2)</div>
                 <div>[2025-09-09 13:15:18] COMPLIANCE: Evidence collected for SOC2 control CC6.1</div>
                 <div>[2025-09-09 13:15:17] AI: ML model updated - Risk prediction accuracy: 94.2%</div>
-                <div class="text-gray-600">[Telemetry stream active - Phase 3 Implementation]</div>
+                <div class="text-gray-600">[Telemetry stream active - Implementation]</div>
               </div>
             </div>
 
@@ -1345,7 +1377,7 @@ app.get('/telemetry', authMiddleware, async (c) => {
               <div class="flex items-center">
                 <i class="fas fa-satellite-dish text-teal-500 mr-3"></i>
                 <div>
-                  <h3 class="text-lg font-medium text-teal-800">Phase 3: Real-Time Telemetry Processing</h3>
+                  <h3 class="text-lg font-medium text-teal-800">Real-Time Telemetry Processing</h3>
                   <p class="mt-1 text-sm text-teal-600">
                     Continuous security telemetry processing with automated risk generation and real-time threat detection.
                     Connect additional data sources via <code>/admin/integrations</code>.

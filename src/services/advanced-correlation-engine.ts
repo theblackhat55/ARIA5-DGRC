@@ -1,5 +1,5 @@
 /**
- * ARIA5 TI Enhancement - Phase 3.1: Advanced ML-Enhanced Threat Correlation Engine
+ * ARIA5 TI Enhancement - Advanced ML-Enhanced Threat Correlation Engine
  * 
  * Enhanced correlation engine with machine learning capabilities for:
  * - Pattern recognition and behavioral analysis

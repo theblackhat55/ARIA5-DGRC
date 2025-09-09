@@ -1,5 +1,5 @@
 /**
- * ARIA5 TI Enhancement - Phase 3.3: Behavioral Analytics and Pattern Recognition Engine
+ * ARIA5 TI Enhancement - Behavioral Analytics and Pattern Recognition Engine
  * 
  * Advanced behavioral analytics for threat detection and pattern recognition:
  * - Real-time behavioral anomaly detection

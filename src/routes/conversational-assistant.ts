@@ -1,7 +1,7 @@
 /**
  * ARIA5 Conversational Threat Intelligence Assistant API Routes
  * 
- * Phase 4.3: RESTful API endpoints for conversational threat intelligence
+ * RESTful API endpoints for conversational threat intelligence
  * 
  * Features:
  * - Natural language query processing

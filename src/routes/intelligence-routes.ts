@@ -3040,7 +3040,7 @@ const renderConversationalAssistantPage = (user: any) => html`
             <i class="fas fa-robot text-blue-600 mr-3"></i>
             Conversational AI Assistant
           </h1>
-          <p class="text-gray-600 mt-2">Phase 4.3 - Natural Language Threat Intelligence Interface</p>
+          <p class="text-gray-600 mt-2">Natural Language Threat Intelligence Interface</p>
         </div>
         <div class="flex items-center space-x-2">
           <span class="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">

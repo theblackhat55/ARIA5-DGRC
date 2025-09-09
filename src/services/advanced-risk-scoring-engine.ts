@@ -1,5 +1,5 @@
 /**
- * ARIA5 TI Enhancement - Phase 3.2: Advanced Risk Scoring Engine
+ * ARIA5 TI Enhancement - Advanced Risk Scoring Engine
  * 
  * Dynamic risk scoring algorithms enhanced with threat intelligence context:
  * - Multi-dimensional risk calculation with threat context

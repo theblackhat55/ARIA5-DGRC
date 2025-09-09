@@ -1,6 +1,6 @@
 /**
  * ARIA5 Threat Intelligence Enhancement - Neural Network Behavioral Analysis Engine
- * Phase 5 Component 5: Advanced neural network system for behavioral pattern analysis,
+ * Advanced neural network system for behavioral pattern analysis,
  * anomaly detection, predictive modeling, and adaptive threat classification
  * 
  * Features:

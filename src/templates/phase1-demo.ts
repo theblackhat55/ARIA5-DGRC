@@ -519,13 +519,13 @@ export async function renderPhase1Demo(c: any) {
   <div class="bg-gray-900 text-white py-8 mt-12">
     <div class="max-w-7xl mx-auto px-4 text-center">
       <div class="mb-4">
-        <h3 class="text-xl font-bold mb-2">🎯 Phase 1: Foundation Enhancement - COMPLETE</h3>
+        <h3 class="text-xl font-bold mb-2">🎯 Foundation Enhancement - COMPLETE</h3>
         <p class="text-gray-400">Service-Centric Risk Intelligence • Approval Workflows • External Integrations</p>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div>
           <div class="text-2xl font-bold text-green-400">✅ 100%</div>
-          <div class="text-sm text-gray-400">Phase 1 Complete</div>
+          <div class="text-sm text-gray-400">Foundation Complete</div>
         </div>
         <div>
           <div class="text-2xl font-bold text-blue-400">${servicesData.reduce((acc, s) => acc + s.total_risks, 0)}</div>

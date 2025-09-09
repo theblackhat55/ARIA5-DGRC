@@ -387,12 +387,17 @@ export function createOperationsRoutes() {
         )
       };
       
-      // Auto-calculate AI-based criticality (don't use manual input)
-      const aiCriticality = await calculateAICriticality(serviceData, c.env.DB);
-      serviceData.criticality = aiCriticality.calculated_criticality;
-      serviceData.criticality_score = aiCriticality.criticality_score;
-      serviceData.ai_confidence = aiCriticality.confidence_level;
-      serviceData.ai_last_assessment = new Date().toISOString();
+      // Calculate simple criticality based on CIA scores
+      const avgCIA = (serviceData.confidentiality_numeric + serviceData.integrity_numeric + serviceData.availability_numeric) / 3;
+      if (avgCIA >= 4.5) {
+        serviceData.criticality = 'critical';
+      } else if (avgCIA >= 3.5) {
+        serviceData.criticality = 'high';
+      } else if (avgCIA >= 2.5) {
+        serviceData.criticality = 'medium';
+      } else {
+        serviceData.criticality = 'low';
+      }
       
       // Create service in services table
       const service = await createService(c.env.DB, serviceData);
@@ -420,13 +425,13 @@ export function createOperationsRoutes() {
       response.headers.set('HX-Trigger', JSON.stringify({
         "closeModal": {},
         "serviceCreated": {
-          "message": `✅ AI Service Assessment Complete! "${serviceData.name}" added with ${serviceData.criticality} criticality (${serviceData.criticality_score}/100, ${Math.round((serviceData.ai_confidence || 0) * 100)}% confidence)`
+          "message": `✅ Service "${serviceData.name}" added with ${serviceData.criticality} criticality`
         },
         "refreshServices": {},
         "showToast": {
           "type": "success",
           "title": "🎉 Service Added Successfully!",
-          "message": `${serviceData.name} has been assessed and configured with AI-driven ${serviceData.criticality} criticality.`
+          "message": `${serviceData.name} has been configured with ${serviceData.criticality} criticality.`
         }
       }));
       return response;
@@ -1830,15 +1835,14 @@ async function getRisks(db: D1Database) {
 
 async function getServices(db: D1Database) {
   try {
-    // Get services from dedicated services table
+    // Get services from existing services table using migration schema
     const result = await db.prepare(`
       SELECT 
         s.*,
-        (SELECT COUNT(*) FROM service_asset_links sal WHERE sal.service_id = s.service_id) as dependency_count,
-        (SELECT COUNT(*) FROM service_risk_links srl WHERE srl.service_id = s.service_id) as risk_count
+        (SELECT COUNT(*) FROM service_risks sr WHERE sr.service_id = s.id) as risk_count
       FROM services s 
-      WHERE s.service_status = 'Active'
-      ORDER BY s.criticality_score DESC, s.created_at DESC
+      WHERE s.status = 'active'
+      ORDER BY s.cia_score DESC, s.created_at DESC
     `).all();
     
     return result.results || [];
@@ -1992,45 +1996,27 @@ async function createAsset(db: D1Database, assetData: any) {
 
 async function createService(db: D1Database, serviceData: any) {
   try {
-    // Store services in dedicated services table
+    // Store services in existing services table using migration schema
     const result = await db.prepare(`
       INSERT INTO services (
-        service_id, name, description, service_category, business_department, service_owner,
-        confidentiality_impact, integrity_impact, availability_impact,
-        confidentiality_numeric, integrity_numeric, availability_numeric,
-        recovery_time_objective, recovery_point_objective, business_function,
-        risk_score, criticality, criticality_score, ai_confidence, ai_last_assessment,
-        service_status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        name, description, criticality_level,
+        confidentiality_score, integrity_score, availability_score,
+        owner_id, organization_id, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
-      serviceData.service_id,
       serviceData.name,
       serviceData.description || '',
-      serviceData.service_category || 'Business Service',
-      serviceData.business_department || 'Unknown',
-      serviceData.service_owner || 'TBD',
-      serviceData.confidentiality_impact || 'Medium',
-      serviceData.integrity_impact || 'Medium', 
-      serviceData.availability_impact || 'Medium',
+      serviceData.criticality || 'medium',
       serviceData.confidentiality_numeric || 3,
       serviceData.integrity_numeric || 3,
       serviceData.availability_numeric || 3,
-      serviceData.recovery_time_objective || 24,
-      serviceData.recovery_point_objective || 24,
-      serviceData.business_function || 'General Operations',
-      serviceData.risk_score || 0.0,
-      serviceData.criticality || 'Medium',
-      serviceData.criticality_score || 50,
-      serviceData.ai_confidence || 0.0,
-      serviceData.ai_last_assessment || new Date().toISOString(),
-      'Active',
-      new Date().toISOString(),
-      new Date().toISOString()
+      1, // Default owner_id
+      1, // Default organization_id
+      'active'
     ).run();
     
     return { 
-      id: result.meta?.last_row_id, 
-      service_id: serviceData.service_id,
+      id: result.meta?.last_row_id,
       ...serviceData 
     };
   } catch (error) {
@@ -2130,17 +2116,16 @@ function renderServiceRows(services: any[]) {
   }
   
   return services.map(service => {
-    // Get dependency and risk counts from the services table query result
-    const dependencyCount = service.dependency_count || 0;
+    // Get risk counts from the services table query result
     const riskCount = service.risk_count || 0;
     
-    // CIA display values from numeric fields (services table structure)
-    const confidentiality = service.confidentiality_numeric || 3;
-    const integrity = service.integrity_numeric || 3; 
-    const availability = service.availability_numeric || 3;
+    // CIA display values from migration schema fields
+    const confidentiality = service.confidentiality_score || 3;
+    const integrity = service.integrity_score || 3; 
+    const availability = service.availability_score || 3;
     
-    // Calculate risk level from CIA scores for display
-    const riskScore = service.risk_score || ((confidentiality + integrity + availability) / 3);
+    // Calculate risk level from CIA scores for display (use cia_score from migration)
+    const riskScore = service.cia_score || ((confidentiality + integrity + availability) / 3);
     let riskLevel, riskColor;
     
     if (riskScore >= 4) {
@@ -2157,15 +2142,15 @@ function renderServiceRows(services: any[]) {
       riskColor = 'bg-green-100 text-green-800';
     }
     
-    // AI Criticality colors
+    // Map migration criticality_level to display colors
     const criticalityColors = {
-      'Critical': 'bg-red-100 text-red-800 border-red-200',
-      'High': 'bg-orange-100 text-orange-800 border-orange-200',
-      'Medium': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Low': 'bg-green-100 text-green-800 border-green-200'
+      'critical': 'bg-red-100 text-red-800 border-red-200',
+      'high': 'bg-orange-100 text-orange-800 border-orange-200',
+      'medium': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'low': 'bg-green-100 text-green-800 border-green-200'
     };
     
-    const criticalityColor = criticalityColors[service.criticality] || criticalityColors['Medium'];
+    const criticalityColor = criticalityColors[service.criticality_level] || criticalityColors['medium'];
     
     return `
     <tr class="hover:bg-gray-50">
@@ -2176,7 +2161,7 @@ function renderServiceRows(services: any[]) {
           </div>
           <div>
             <div class="text-sm font-medium text-gray-900">${service.name}</div>
-            <div class="text-sm text-gray-500">${service.service_category || 'Service'} • ${service.business_department || 'Unknown Dept'}</div>
+            <div class="text-sm text-gray-500">Service • ID: ${service.id}</div>
             ${service.description ? `<div class="text-xs text-gray-400 mt-1">${service.description.substring(0, 80)}${service.description.length > 80 ? '...' : ''}</div>` : ''}
           </div>
         </div>
@@ -2184,19 +2169,18 @@ function renderServiceRows(services: any[]) {
       <td class="px-6 py-4 whitespace-nowrap">
         <div class="flex items-center space-x-2 mb-2">
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${criticalityColor}">
-            <i class="fas fa-brain mr-1"></i>
-            ${service.criticality || 'Medium'}
+            <i class="fas fa-shield-alt mr-1"></i>
+            ${service.criticality_level ? service.criticality_level.charAt(0).toUpperCase() + service.criticality_level.slice(1) : 'Medium'}
           </span>
-          ${service.ai_confidence > 0 ? `<span class="text-xs text-gray-500">${Math.round(service.ai_confidence * 100)}%</span>` : ''}
         </div>
         <div class="text-xs text-gray-500">
-          Score: ${service.criticality_score || 50}/100
+          CIA: ${riskScore.toFixed(1)}/5.0
         </div>
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
         <div class="flex flex-col space-y-1">
           <div class="flex items-center">
-            <span class="text-xs font-medium text-gray-900">${dependencyCount}</span>
+            <span class="text-xs font-medium text-gray-900">${riskCount}</span>
             <span class="text-xs text-gray-500 ml-1">assets</span>
           </div>
           <div class="flex items-center">

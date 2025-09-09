@@ -88,7 +88,7 @@ export function createEnhancedComplianceRoutes() {
       `).all();
 
       // MULTI-TENANCY FEATURE - TEMPORARILY DISABLED
-      // TODO: Re-enable when Phase 4 multi-tenancy features are needed
+      // TODO: Re-enable when multi-tenancy features are needed
       // Get organization info (if enterprise features enabled)
       // const orgInfo = await db.prepare(`
       //   SELECT * FROM organizations_hierarchy 
@@ -584,7 +584,7 @@ export function createEnhancedComplianceRoutes() {
     }
 
     try {
-      // Get workflow metrics for Phase 3 features
+      // Get workflow metrics
       const workflowMetrics = await db.prepare(`
         SELECT 
           COUNT(*) as total_workflows,
@@ -593,7 +593,7 @@ export function createEnhancedComplianceRoutes() {
         FROM compliance_workflows_advanced
       `).first();
 
-      // Get monitoring rules for Phase 3 features  
+      // Get monitoring rules  
       const monitoringRules = await db.prepare(`
         SELECT 
           COUNT(*) as total_rules,
@@ -615,7 +615,7 @@ export function createEnhancedComplianceRoutes() {
 
       return c.html(
         cleanLayout({
-          title: 'Compliance Automation - Phase 3',
+          title: 'Compliance Automation',
           user,
           additionalHead: html`
             <script src="/static/enhanced-compliance-dashboard.js"></script>
@@ -634,7 +634,7 @@ export function createEnhancedComplianceRoutes() {
               <div class="bg-white rounded-xl shadow-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">
                   <i class="fas fa-cogs mr-2 text-blue-600"></i>
-                  Compliance Automation Center - Phase 3
+                  Compliance Automation Center
                 </h3>
                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
                   <div class="flex">
@@ -644,7 +644,7 @@ export function createEnhancedComplianceRoutes() {
                     <div class="ml-3">
                       <h4 class="text-sm font-medium text-yellow-800">Database Initialization Required</h4>
                       <div class="mt-2 text-sm text-yellow-700">
-                        <p>The automation features require database tables to be initialized. Please run the migration scripts to set up Phase 3 features.</p>
+                        <p>The automation features require database tables to be initialized. Please run the migration scripts to set up automation features.</p>
                       </div>
                     </div>
                   </div>
@@ -1359,7 +1359,7 @@ function renderAutomationManagement(workflowMetrics: any, monitoringRules: any, 
           <div class="py-6">
             <div class="flex items-center justify-between">
               <div>
-                <h1 class="text-2xl font-bold text-white">Phase 3: Compliance Automation Center</h1>
+                <h1 class="text-2xl font-bold text-white">Compliance Automation Center</h1>
                 <p class="text-blue-100 mt-1">Advanced Workflow Engine & Continuous Monitoring</p>
               </div>
               <div class="flex space-x-3">
@@ -1864,13 +1864,13 @@ function renderComplianceDashboard(data: {
             </div>
 
             <!-- MULTI-TENANCY FEATURES - TEMPORARILY DISABLED -->
-            <!-- TODO: Re-enable when Phase 4 multi-tenancy features are needed -->
-            <!-- Phase 3 Automation Features Grid -->
+            <!-- TODO: Re-enable when multi-tenancy features are needed -->
+            <!-- Automation Features Grid -->
             <div class="bg-white rounded-xl shadow-lg">
               <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-semibold text-gray-900 flex items-center">
                   <i class="fas fa-cogs mr-2 text-blue-600"></i>
-                  Phase 3: Automation Features
+                  Automation Features
                 </h3>
               </div>
               <div class="p-6">
@@ -1934,7 +1934,7 @@ function renderComplianceDashboard(data: {
           </div>
 
           <!-- MULTI-TENANCY FEATURE - TEMPORARILY DISABLED -->
-          <!-- TODO: Re-enable when Phase 4 multi-tenancy features are needed -->
+          <!-- TODO: Re-enable when multi-tenancy features are needed -->
           <!--
           <button onclick="location.href='/api/enterprise/organizations'" 
                   class="block w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border-l-4 border-orange-500 text-left">

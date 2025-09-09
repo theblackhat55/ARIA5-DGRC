@@ -128,7 +128,7 @@ app.get('/demo', async (c) => {
                   <i class="fas fa-check-circle text-green-500 text-2xl"></i>
                 </div>
                 <div class="ml-3">
-                  <h3 class="text-lg font-medium text-green-800">🚀 Phase 1 Foundation Enhancement - READY</h3>
+                  <h3 class="text-lg font-medium text-green-800">🚀 Foundation Enhancement - READY</h3>
                   <div class="mt-2 text-sm text-green-700">
                     <p><strong>✅ Service-Centric Architecture:</strong> Dynamic risk cascading across service dependencies</p>
                     <p><strong>✅ CIA Triad Scoring:</strong> Confidentiality, Integrity, Availability assessment</p>
@@ -205,7 +205,7 @@ app.get('/demo', async (c) => {
 
             <!-- Login CTA -->
             <div class="bg-white rounded-lg shadow p-8 text-center">
-              <h3 class="text-2xl font-medium text-gray-900 mb-4">Ready to Explore Phase 1 Enhancements?</h3>
+              <h3 class="text-2xl font-medium text-gray-900 mb-4">Ready to Explore Platform Enhancements?</h3>
               <p class="text-gray-600 mb-4">Login to access the enhanced risk management platform</p>
               <p class="text-sm text-gray-500 mb-6"><strong>Demo Credentials:</strong> admin / demo123</p>
               <a href="/login" 
@@ -292,7 +292,7 @@ app.route('/api/ai-threat', aiThreatAnalysisRoutes);
 import apiRiskConsistencyRoutes from './routes/api-risk-consistency';
 app.route('/api/risk-consistency', apiRiskConsistencyRoutes);
 
-// Phase 3: Advanced Compliance Automation API 
+// Advanced Compliance Automation API 
 app.route('/api/compliance-automation', complianceAutomationApi);
 
 // DEBUG ENDPOINTS (for testing Phase 1 features)

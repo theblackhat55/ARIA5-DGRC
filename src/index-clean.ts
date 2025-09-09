@@ -25,7 +25,7 @@ import { createRiskControlRoutes } from './routes/risk-control-routes';
 // Import security middleware
 import { authMiddleware, requireRole, requireAdmin, csrfMiddleware } from './middleware/auth-middleware';
 
-// Phase 3 & 4 Implementation Routes - Advanced Analytics & Enterprise Scale
+// Advanced Analytics & Enterprise Scale Routes
 import { mlAnalyticsRoutes } from './routes/ml-analytics';
 import { threatIntelRoutes } from './routes/threat-intelligence';
 import { incidentResponseRoutes } from './routes/incident-response';
@@ -413,7 +413,7 @@ app.route('/ai', aiRoutes);
 app.use('/policies/*', authMiddleware);
 app.route('/policies', policyRoutes);
 
-// Phase 3 & 4 Routes - Advanced Analytics & Enterprise Scale (protected)
+// Advanced Analytics & Enterprise Scale Routes (protected)
 app.use('/analytics/*', authMiddleware);
 app.route('/analytics', mlAnalyticsRoutes);
 
@@ -423,7 +423,7 @@ app.route('/threat-intel', threatIntelRoutes);
 app.use('/incident-response/*', authMiddleware);
 app.route('/incident-response', incidentResponseRoutes);
 
-// Phase 3 & 4 API Routes (protected)
+// Advanced Analytics & Enterprise Scale API Routes (protected)
 app.use('/api/analytics/*', authMiddleware);
 app.route('/api/analytics', apiAnalyticsRoutes);
 
