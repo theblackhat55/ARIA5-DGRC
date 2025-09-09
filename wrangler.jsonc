@@ -1,35 +1,35 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "aria5-ti-enhancement",
+  "name": "aria51d",
   "compatibility_date": "2025-01-01",
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
     "nodejs_compat"
   ],
   
-  // D1 Database Configuration - Enterprise Security Intelligence Platform
+  // D1 Database Configuration - ARIA5-DGRC Dynamic GRC Platform
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "aria51-production",
-      "database_id": "8c465a3b-7e5a-4f39-9237-ff56b8e644d0"
+      "database_name": "aria5-dgrc-production",
+      "database_id": "0e6a8e4a-309a-4cb4-a7f0-882320c739ea"
     }
   ],
 
-  // KV Namespace for Session Management and Caching (disabled for initial deployment)
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "KV",
-  //     "id": "placeholder-kv-id",
-  //     "preview_id": "placeholder-preview-kv-id"
-  //   }
-  // ],
+  // KV Namespace for Session Management and Caching
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "829bec4b96bf4683bf4e704147fc0857",
+      "preview_id": "ede41b981af6476bbfaf2c3fc706f791"
+    }
+  ],
 
-  // R2 Storage for Evidence Files and Reports (ENABLED)
+  // R2 Storage for Evidence Files and Reports
   "r2_buckets": [
     {
       "binding": "R2",
-      "bucket_name": "aria51"
+      "bucket_name": "aria5-dgrc-storage"
     }
   ],
   
