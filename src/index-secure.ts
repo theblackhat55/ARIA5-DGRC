@@ -415,6 +415,78 @@ app.route('/dashboard', createCleanDashboardRoutes());
 // Risk Management (requires authentication, works with database fix)
 app.route('/risk', createRiskRoutesARIA5());
 
+// Services Management (requires authentication)
+app.get('/services', authMiddleware, async (c) => {
+  try {
+    // Get services statistics from existing tables
+    const servicesStats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(*) as total_services,
+        SUM(CASE WHEN criticality_level = 'critical' THEN 1 ELSE 0 END) as critical_services,
+        SUM(CASE WHEN criticality_level = 'high' THEN 1 ELSE 0 END) as high_services,
+        AVG(cia_score) as avg_cia_score,
+        AVG(aggregate_risk_score) as avg_risk_score
+      FROM services 
+      WHERE status = 'active'
+    `).first();
+
+    return c.html(
+      cleanLayout({
+        title: 'Services Management - ARIA5.1',
+        user: c.get('user'),
+        content: html`
+          <div class="min-h-screen bg-gray-50 py-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Services Management</h1>
+                <p class="mt-2 text-gray-600">Service inventory with CIA scoring and risk cascade analysis</p>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6 text-center">
+                  <i class="fas fa-server text-3xl text-blue-600 mb-3"></i>
+                  <div class="text-2xl font-bold text-gray-900">${servicesStats?.total_services || 0}</div>
+                  <div class="text-sm text-gray-600">Total Services</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6 text-center">
+                  <i class="fas fa-exclamation-triangle text-3xl text-red-600 mb-3"></i>
+                  <div class="text-2xl font-bold text-gray-900">${servicesStats?.critical_services || 0}</div>
+                  <div class="text-sm text-gray-600">Critical Services</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6 text-center">
+                  <i class="fas fa-shield-alt text-3xl text-purple-600 mb-3"></i>
+                  <div class="text-2xl font-bold text-gray-900">${Number(servicesStats?.avg_cia_score || 0).toFixed(1)}</div>
+                  <div class="text-sm text-gray-600">Avg CIA Score</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6 text-center">
+                  <i class="fas fa-chart-line text-3xl text-orange-600 mb-3"></i>
+                  <div class="text-2xl font-bold text-gray-900">${Number(servicesStats?.avg_risk_score || 0).toFixed(1)}</div>
+                  <div class="text-sm text-gray-600">Avg Risk Score</div>
+                </div>
+              </div>
+
+              <div class="bg-emerald-50 border-l-4 border-emerald-500 p-6">
+                <div class="flex items-center">
+                  <i class="fas fa-network-wired text-emerald-500 mr-3"></i>
+                  <div>
+                    <h3 class="text-lg font-medium text-emerald-800">Phase 1: Service-Centric Dynamic GRC</h3>
+                    <p class="mt-1 text-sm text-emerald-600">
+                      Service management with CIA scoring and risk cascade propagation. Access detailed service configuration in admin section.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+      })
+    );
+  } catch (error) {
+    console.error('Services error:', error);
+    return c.text('Services temporarily unavailable', 500);
+  }
+});
+
 // Enhanced Compliance Management with AI (requires authentication)
 app.route('/compliance', createEnhancedComplianceRoutes());
 
