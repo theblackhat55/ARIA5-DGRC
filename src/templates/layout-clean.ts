@@ -1627,15 +1627,60 @@ const renderCleanNavigation = (user: any) => html`
             </div>
           </div>
           
-          <!-- Advanced Analytics Dropdown -->
+          <!-- Enhanced AI & ML Dropdown -->
           <div class="relative" data-dropdown>
             <button data-dropdown-button class="flex items-center space-x-1 text-gray-700 hover:text-purple-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <i class="fas fa-brain mr-1"></i>
               <span>AI & ML</span>
               <i class="fas fa-chevron-down text-xs"></i>
             </button>
-            <div data-dropdown-menu class="dropdown-menu absolute left-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+            <div data-dropdown-menu class="dropdown-menu absolute left-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
               <div class="py-2">
+                <!-- Core AI Features Header -->
+                <div class="px-4 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-100">
+                  <h4 class="text-xs font-semibold text-purple-800 uppercase tracking-wide">Enhanced AI Features</h4>
+                </div>
+                
+                <!-- Primary AI/ML Features -->
+                <a href="/ai-analytics" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
+                  <i class="fas fa-chart-bar w-5 text-purple-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">AI Analytics Dashboard</div>
+                    <div class="text-xs text-gray-500">AI-powered insights and metrics</div>
+                  </div>
+                </a>
+                <a href="/predictions" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
+                  <i class="fas fa-brain w-5 text-indigo-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">ML Risk Predictions</div>
+                    <div class="text-xs text-gray-500">Machine learning risk forecasting</div>
+                  </div>
+                </a>
+                <a href="/telemetry" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
+                  <i class="fas fa-satellite-dish w-5 text-teal-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Real-Time Telemetry</div>
+                    <div class="text-xs text-gray-500">Live data monitoring & analysis</div>
+                  </div>
+                </a>
+                <a href="/evidence" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
+                  <i class="fas fa-folder-open w-5 text-green-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Evidence Collection</div>
+                    <div class="text-xs text-gray-500">Automated evidence gathering</div>
+                  </div>
+                </a>
+                
+                <div class="border-t border-gray-100 my-2"></div>
+                
+                <!-- Traditional AI/ML Features -->
+                <a href="/ai" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
+                  <i class="fas fa-robot w-5 text-blue-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">AI Assistant</div>
+                    <div class="text-xs text-gray-500">Interactive AI risk advisor</div>
+                  </div>
+                </a>
                 <a href="/intelligence/correlation-engine" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
                   <i class="fas fa-network-wired w-5 text-green-500 mr-3"></i>
                   <div>
