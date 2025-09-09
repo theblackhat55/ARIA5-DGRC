@@ -162,6 +162,86 @@ app.get('/api/ai-threat/health', async (c) => {
   }
 });
 
+// Debug endpoint for services table (public for testing)
+app.get('/debug/services-test', async (c) => {
+  try {
+    console.log('🔍 Testing services query...');
+    
+    const result = await c.env.DB.prepare(`
+      SELECT 
+        s.id,
+        s.name,
+        s.description,
+        s.status,
+        s.criticality_level,
+        s.confidentiality_score,
+        s.integrity_score,
+        s.availability_score,
+        s.cia_score,
+        s.aggregate_risk_score,
+        s.created_at
+      FROM services s
+      WHERE s.status = 'active'
+      ORDER BY s.cia_score DESC, s.name ASC
+      LIMIT 10
+    `).all();
+    
+    return c.json({
+      success: true,
+      services_result: result,
+      row_count: result.results?.length || 0,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    return c.json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Debug endpoint for dashboard data (public for testing)
+app.get('/debug/dashboard-data-test', async (c) => {
+  try {
+    console.log('🔍 Testing dashboard data queries...');
+    
+    // Test risks query (for dashboard stats)
+    const risksQuery = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN status = 'active' THEN 1 END) as active,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+        AVG(probability * impact) as avg_risk_score
+      FROM risks
+    `).first();
+    
+    // Test services query (for dashboard stats)  
+    const servicesQuery = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN criticality_level = 'critical' THEN 1 END) as critical,
+        COUNT(CASE WHEN criticality_level = 'high' THEN 1 END) as high,
+        AVG(cia_score) as avg_cia_score
+      FROM services
+      WHERE status = 'active'
+    `).first();
+    
+    return c.json({
+      success: true,
+      risks_stats: risksQuery,
+      services_stats: servicesQuery,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    return c.json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Debug endpoint for risk table (public for testing)
 app.get('/debug/risk-table-test', async (c) => {
   try {
@@ -511,17 +591,87 @@ app.get('/services', authMiddleware, async (c) => {
                 </div>
               </div>
 
+              <!-- Services Table -->
+              <div class="bg-white rounded-lg shadow mb-8">
+                <div class="px-6 py-4 border-b border-gray-200">
+                  <h3 class="text-lg font-medium text-gray-900">Service Inventory</h3>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criticality</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CIA Score</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="services-table-body" class="bg-white divide-y divide-gray-200">
+                      <!-- Services will be loaded here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               <div class="bg-emerald-50 border-l-4 border-emerald-500 p-6">
                 <div class="flex items-center">
                   <i class="fas fa-network-wired text-emerald-500 mr-3"></i>
                   <div>
                     <h3 class="text-lg font-medium text-emerald-800">Phase 1: Service-Centric Dynamic GRC</h3>
                     <p class="mt-1 text-sm text-emerald-600">
-                      Service management with CIA scoring and risk cascade propagation. Access detailed service configuration in admin section.
+                      Service management with CIA scoring and risk cascade propagation. All ${servicesStats?.total_services || 0} services with real CIA ratings.
                     </p>
                   </div>
                 </div>
               </div>
+
+              <script>
+                // Load services table data
+                document.addEventListener('DOMContentLoaded', function() {
+                  loadServicesTable();
+                });
+
+                async function loadServicesTable() {
+                  try {
+                    const response = await fetch('/debug/services-test');
+                    const data = await response.json();
+                    
+                    if (data.success && data.services_result.results) {
+                      const tbody = document.getElementById('services-table-body');
+                      tbody.innerHTML = data.services_result.results.map(service => \`
+                        <tr>
+                          <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">\${service.name}</div>
+                            <div class="text-sm text-gray-500">\${service.description || 'No description'}</div>
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full \${
+                              service.criticality_level === 'critical' ? 'bg-red-100 text-red-800' :
+                              service.criticality_level === 'high' ? 'bg-orange-100 text-orange-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }">
+                              \${service.criticality_level}
+                            </span>
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            \${service.cia_score ? Number(service.cia_score).toFixed(1) : 'N/A'}
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              \${service.status}
+                            </span>
+                          </td>
+                        </tr>
+                      \`).join('');
+                    } else {
+                      document.getElementById('services-table-body').innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No services found</td></tr>';
+                    }
+                  } catch (error) {
+                    console.error('Error loading services:', error);
+                    document.getElementById('services-table-body').innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Error loading services</td></tr>';
+                  }
+                }
+              </script>
             </div>
           </div>
         `
