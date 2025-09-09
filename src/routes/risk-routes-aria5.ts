@@ -189,12 +189,8 @@ export function createRiskRoutesARIA5() {
       }
       
       if (category) {
-        const categoryMap: {[key: string]: number} = {
-          'operational': 1, 'financial': 2, 'strategic': 3,
-          'compliance': 4, 'technology': 5, 'reputation': 6
-        };
-        whereConditions.push('r.category_id = ?');
-        params.push(categoryMap[category] || 1);
+        whereConditions.push('LOWER(r.category) = LOWER(?)');
+        params.push(category);
       }
       
       if (risk_level) {
@@ -215,30 +211,19 @@ export function createRiskRoutesARIA5() {
       const result = await c.env.DB.prepare(`
         SELECT 
           r.id,
-          r.risk_id,
           r.title,
           r.description,
-          r.category_id,
+          r.category,
           r.probability,
           r.impact,
-          COALESCE(r.risk_score, r.probability * r.impact) as risk_score,
+          COALESCE(r.probability * r.impact) as risk_score,
           r.status,
           r.organization_id,
-          r.owner_id,  
-          r.created_by,
-          r.risk_type,
+          r.owner_id,
           r.created_at,
           r.updated_at,
           'Avi Security' as owner_name,
-          CASE 
-            WHEN r.category_id = 1 THEN 'Operational'
-            WHEN r.category_id = 2 THEN 'Financial' 
-            WHEN r.category_id = 3 THEN 'Strategic'
-            WHEN r.category_id = 4 THEN 'Compliance'
-            WHEN r.category_id = 5 THEN 'Technology'
-            WHEN r.category_id = 6 THEN 'Reputation'
-            ELSE 'Operational'
-          END as category_name
+          r.category as category_name
         FROM risks r
         ${whereClause}
         ORDER BY COALESCE(r.risk_score, r.probability * r.impact) DESC, r.created_at DESC
