@@ -177,17 +177,20 @@ app.get('/debug/dashboard-stats', async (c) => {
       WHERE status = 'active'
     `).first();
 
-    const incidentsResult = await c.env.DB.prepare(`
+    // Get services data instead of incidents (incidents table doesn't exist yet)
+    const servicesResult = await c.env.DB.prepare(`
       SELECT 
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open,
-        SUM(CASE WHEN status IN ('resolved', 'closed') THEN 1 ELSE 0 END) as resolved
-      FROM incidents
+        SUM(CASE WHEN criticality_level = 'critical' THEN 1 ELSE 0 END) as critical,
+        SUM(CASE WHEN criticality_level = 'high' THEN 1 ELSE 0 END) as high,
+        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active
+      FROM services
     `).first();
 
     return c.json({
       timestamp: new Date().toISOString(),
-      debug: 'Dashboard stats test',
+      debug: 'Dashboard stats test - Production database connected',
+      database_id: '7485217f-c847-4a75-acab-917adacd9f4b',
       risks: {
         raw: risksResult,
         processed: {
@@ -198,12 +201,13 @@ app.get('/debug/dashboard-stats', async (c) => {
           low: Number(risksResult?.low) || 0
         }
       },
-      incidents: {
-        raw: incidentsResult,
+      services: {
+        raw: servicesResult,
         processed: {
-          open: Number(incidentsResult?.open) || 0,
-          resolved: Number(incidentsResult?.resolved) || 0,
-          total: Number(incidentsResult?.total) || 0
+          total: Number(servicesResult?.total) || 0,
+          critical: Number(servicesResult?.critical) || 0,
+          high: Number(servicesResult?.high) || 0,
+          active: Number(servicesResult?.active) || 0
         }
       }
     });
