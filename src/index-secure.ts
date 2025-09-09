@@ -162,6 +162,48 @@ app.get('/api/ai-threat/health', async (c) => {
   }
 });
 
+// Debug endpoint for risk table (public for testing)
+app.get('/debug/risk-table-test', async (c) => {
+  try {
+    console.log('🔍 Testing risk table query...');
+    
+    // Test the exact query from risk table
+    const result = await c.env.DB.prepare(`
+      SELECT 
+        r.id,
+        r.title,
+        r.description,
+        r.category,
+        r.probability,
+        r.impact,
+        (r.probability * r.impact) as risk_score,
+        r.status,
+        r.organization_id,
+        r.owner_id,
+        r.created_at,
+        r.updated_at,
+        'Avi Security' as owner_name,
+        r.category as category_name
+      FROM risks r
+      ORDER BY (r.probability * r.impact) DESC, r.created_at DESC
+      LIMIT 10
+    `).all();
+    
+    return c.json({
+      success: true,
+      query_result: result,
+      row_count: result.results?.length || 0,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    return c.json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Debug endpoint for dashboard metrics (public for testing)
 app.get('/debug/dashboard-stats', async (c) => {
   try {

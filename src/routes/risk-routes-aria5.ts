@@ -195,13 +195,13 @@ export function createRiskRoutesARIA5() {
       
       if (risk_level) {
         if (risk_level === 'critical') {
-          whereConditions.push('COALESCE(r.risk_score, r.probability * r.impact) >= 20');
+          whereConditions.push('(r.probability * r.impact) >= 20');
         } else if (risk_level === 'high') {
-          whereConditions.push('COALESCE(r.risk_score, r.probability * r.impact) >= 15 AND COALESCE(r.risk_score, r.probability * r.impact) < 20');
+          whereConditions.push('(r.probability * r.impact) >= 15 AND (r.probability * r.impact) < 20');
         } else if (risk_level === 'medium') {
-          whereConditions.push('COALESCE(r.risk_score, r.probability * r.impact) >= 10 AND COALESCE(r.risk_score, r.probability * r.impact) < 15');
+          whereConditions.push('(r.probability * r.impact) >= 10 AND (r.probability * r.impact) < 15');
         } else if (risk_level === 'low') {
-          whereConditions.push('COALESCE(r.risk_score, r.probability * r.impact) < 10');
+          whereConditions.push('(r.probability * r.impact) < 10');
         }
       }
       
@@ -216,7 +216,7 @@ export function createRiskRoutesARIA5() {
           r.category,
           r.probability,
           r.impact,
-          COALESCE(r.probability * r.impact) as risk_score,
+          (r.probability * r.impact) as risk_score,
           r.status,
           r.organization_id,
           r.owner_id,
@@ -226,7 +226,7 @@ export function createRiskRoutesARIA5() {
           r.category as category_name
         FROM risks r
         ${whereClause}
-        ORDER BY COALESCE(r.risk_score, r.probability * r.impact) DESC, r.created_at DESC
+        ORDER BY (r.probability * r.impact) DESC, r.created_at DESC
         LIMIT 50
       `).bind(...params).all();
       console.log('✅ Successfully fetched from comprehensive risks table');
