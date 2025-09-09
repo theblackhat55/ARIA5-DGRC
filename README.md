@@ -6,8 +6,9 @@
 
 **ARIA5-DGRC - Dynamic GRC Implementation**
 - **Repository**: https://github.com/theblackhat55/ARIA5-DGRC
-- **Production**: https://e9143823.aria51d.pages.dev
-- **Phase 1 Demo**: https://e9143823.aria51d.pages.dev/phase1-demo
+- **Production**: https://d556feb9.aria51d.pages.dev  
+- **Phase 1 Demo**: https://d556feb9.aria51d.pages.dev/phase1-demo
+- **Local Dev**: https://3000-i5y648fwqc9hcsy2275d3-6532622b.e2b.dev
 - **Status**: ✅ Phase 1 - Foundation Enhancement (COMPLETE)
 - **Vision**: Transform static GRC into dynamic, AI-enabled risk intelligence
 - **Architecture**: Service-centric risk scoring with real-time telemetry
