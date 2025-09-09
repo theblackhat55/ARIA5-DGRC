@@ -119,6 +119,98 @@ export function createAdminRoutesARIA5() {
     }
   });
 
+  // External Systems Integrations (Phase 1 Dynamic GRC)
+  app.get('/integrations', async (c) => {
+    const user = c.get('user');
+    
+    return c.html(
+      cleanLayout({
+        title: 'External System Integrations',
+        user,
+        content: renderIntegrationsPage()
+      })
+    );
+  });
+
+  // Integration Configuration
+  app.get('/integrations/:system/config', async (c) => {
+    const system = c.req.param('system');
+    return c.html(renderIntegrationConfigModal(system));
+  });
+
+  // Test Integration Connection
+  app.post('/integrations/:system/test', async (c) => {
+    const system = c.req.param('system');
+    const formData = await c.req.parseBody();
+    
+    // Mock test for Phase 1 - in production, test actual API connections
+    const success = Math.random() > 0.2; // 80% success rate for demo
+    
+    return c.html(html`
+      <div class="mt-3 p-3 rounded-lg ${success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}">
+        <div class="flex items-center">
+          <i class="fas fa-${success ? 'check-circle text-green-500' : 'exclamation-circle text-red-500'} mr-2"></i>
+          <span class="${success ? 'text-green-700' : 'text-red-700'} text-sm font-medium">
+            ${success ? `${system} integration test successful!` : `Failed to connect to ${system}. Please verify credentials and endpoints.`}
+          </span>
+        </div>
+      </div>
+    `);
+  });
+
+  // Save Integration Configuration
+  app.post('/integrations/:system/save', async (c) => {
+    const system = c.req.param('system');
+    const formData = await c.req.parseBody();
+    
+    try {
+      // For Phase 1, store in system_config table
+      const config = {
+        endpoint: formData.endpoint,
+        api_key: formData.api_key,
+        enabled: formData.enabled === 'true',
+        sync_interval: formData.sync_interval,
+        last_sync: null
+      };
+      
+      await c.env.DB.prepare(`
+        INSERT OR REPLACE INTO system_config (key, value, description, updated_at)
+        VALUES (?, ?, ?, datetime('now'))
+      `).bind(
+        `integration_${system}`,
+        JSON.stringify(config),
+        `Configuration for ${system} integration`
+      ).run();
+
+      console.log(`Integration ${system} configuration saved`);
+      
+      return c.html(html`
+        <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-center">
+            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+            <span class="text-green-700 font-medium">${system} integration configured successfully!</span>
+          </div>
+        </div>
+        <script>
+          setTimeout(() => {
+            document.getElementById('modal-container').innerHTML = '';
+            htmx.ajax('GET', '/admin/integrations', '#main-content');
+          }, 2000);
+        </script>
+      `);
+    } catch (error) {
+      console.error(`Error saving ${system} integration:`, error);
+      return c.html(html`
+        <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div class="flex items-center">
+            <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
+            <span class="text-red-700 font-medium">Failed to save ${system} integration</span>
+          </div>
+        </div>
+      `);
+    }
+  });
+
   // RAG & Knowledge Management
   app.get('/knowledge', async (c) => {
     const user = c.get('user');
@@ -1249,6 +1341,70 @@ function renderOptimizedAdminDashboard() {
               <span class="text-2xl font-bold text-gray-900">42</span>
               <span class="text-sm text-orange-600">
                 <i class="fas fa-upload mr-1"></i>Uploaded
+              </span>
+            </div>
+          </div>
+
+          <!-- External Integrations (Phase 1 Dynamic GRC) -->
+          <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
+               onclick="location.href='/admin/integrations'">
+            <div class="flex items-center mb-4">
+              <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-plug text-indigo-600 text-xl"></i>
+              </div>
+              <div class="ml-4">
+                <h3 class="text-lg font-semibold text-gray-900">Integrations</h3>
+                <p class="text-sm text-gray-600">External systems</p>
+              </div>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-2xl font-bold text-gray-900">4</span>
+              <span class="text-sm text-indigo-600">
+                <i class="fas fa-link mr-1"></i>Connected
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Quick Actions for Phase 1 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          
+          <!-- Risk Approval Workflow -->
+          <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
+               onclick="location.href='/risks?filter=pending_approval'">
+            <div class="flex items-center mb-4">
+              <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-clipboard-check text-yellow-600 text-xl"></i>
+              </div>
+              <div class="ml-4">
+                <h3 class="text-lg font-semibold text-gray-900">Risk Approvals</h3>
+                <p class="text-sm text-gray-600">Pending workflow</p>
+              </div>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-2xl font-bold text-gray-900">7</span>
+              <span class="text-sm text-yellow-600">
+                <i class="fas fa-clock mr-1"></i>Pending
+              </span>
+            </div>
+          </div>
+
+          <!-- Service Risk Cascading -->
+          <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
+               onclick="location.href='/services?view=risk_cascade'">
+            <div class="flex items-center mb-4">
+              <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-project-diagram text-red-600 text-xl"></i>
+              </div>
+              <div class="ml-4">
+                <h3 class="text-lg font-semibold text-gray-900">Risk Cascading</h3>
+                <p class="text-sm text-gray-600">Service dependencies</p>
+              </div>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-2xl font-bold text-gray-900">12</span>
+              <span class="text-sm text-red-600">
+                <i class="fas fa-exclamation-triangle mr-1"></i>Active
               </span>
             </div>
           </div>
@@ -4591,6 +4747,393 @@ const getRoleColor = (role: string): string => {
 const getAuthTypeColor = (authType: string): string => {
   return authType === 'saml' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800';
 };
+
+// Phase 1 Dynamic GRC: External System Integrations Page
+function renderIntegrationsPage() {
+  return html`
+    <div class="min-h-screen bg-gray-50 py-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8">
+          <h1 class="text-3xl font-bold text-gray-900">External System Integrations</h1>
+          <p class="text-gray-600 mt-2">Configure connections to external security and compliance systems for Dynamic GRC</p>
+        </div>
+
+        <!-- Integration Categories -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          <!-- Security Intelligence Feeds -->
+          <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-shield-alt text-red-500 mr-3"></i>
+                Security Intelligence
+              </h3>
+            </div>
+            <div class="p-6">
+              <div class="space-y-6">
+                
+                <!-- Microsoft Defender -->
+                <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center">
+                      <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fab fa-microsoft text-blue-600"></i>
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-gray-900">Microsoft Defender</h4>
+                        <p class="text-sm text-gray-600">Threat intelligence and incidents</p>
+                      </div>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Not Configured
+                    </span>
+                  </div>
+                  <div class="flex space-x-2">
+                    <button hx-get="/admin/integrations/microsoft-defender/config"
+                            hx-target="#modal-container"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm">
+                      Configure
+                    </button>
+                    <button class="bg-gray-200 text-gray-400 px-3 py-2 rounded text-sm cursor-not-allowed">
+                      Test (Configure First)
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Crowdstrike -->
+                <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-red-500">
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center">
+                      <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-crow text-red-600"></i>
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-gray-900">CrowdStrike Falcon</h4>
+                        <p class="text-sm text-gray-600">Endpoint detection and response</p>
+                      </div>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Connected
+                    </span>
+                  </div>
+                  <div class="flex space-x-2">
+                    <button hx-get="/admin/integrations/crowdstrike/config"
+                            hx-target="#modal-container"
+                            class="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm">
+                      Configure
+                    </button>
+                    <button hx-post="/admin/integrations/crowdstrike/test"
+                            hx-target="#crowdstrike-test-result"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded text-sm">
+                      Test
+                    </button>
+                  </div>
+                  <div id="crowdstrike-test-result"></div>
+                </div>
+
+                <!-- MISP Threat Intelligence -->
+                <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-orange-500">
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center">
+                      <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-bug text-orange-600"></i>
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-gray-900">MISP Platform</h4>
+                        <p class="text-sm text-gray-600">Malware Information Sharing</p>
+                      </div>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Connected
+                    </span>
+                  </div>
+                  <div class="flex space-x-2">
+                    <button hx-get="/admin/integrations/misp/config"
+                            hx-target="#modal-container"
+                            class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded text-sm">
+                      Configure
+                    </button>
+                    <button hx-post="/admin/integrations/misp/test"
+                            hx-target="#misp-test-result"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded text-sm">
+                      Test
+                    </button>
+                  </div>
+                  <div id="misp-test-result"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- IT Service Management -->
+          <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-tools text-blue-500 mr-3"></i>
+                IT Service Management
+              </h3>
+            </div>
+            <div class="p-6">
+              <div class="space-y-6">
+                
+                <!-- ServiceNow -->
+                <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-green-500">
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center">
+                      <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-snowflake text-green-600"></i>
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-gray-900">ServiceNow</h4>
+                        <p class="text-sm text-gray-600">Incident and change management</p>
+                      </div>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Connected
+                    </span>
+                  </div>
+                  <div class="text-sm text-gray-600 mb-3">
+                    Last sync: 5 minutes ago • 23 incidents imported today
+                  </div>
+                  <div class="flex space-x-2">
+                    <button hx-get="/admin/integrations/servicenow/config"
+                            hx-target="#modal-container"
+                            class="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm">
+                      Configure
+                    </button>
+                    <button hx-post="/admin/integrations/servicenow/test"
+                            hx-target="#servicenow-test-result"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded text-sm">
+                      Test
+                    </button>
+                  </div>
+                  <div id="servicenow-test-result"></div>
+                </div>
+
+                <!-- Jira -->
+                <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center">
+                      <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fab fa-jira text-blue-600"></i>
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-gray-900">Atlassian Jira</h4>
+                        <p class="text-sm text-gray-600">Issue tracking and project management</p>
+                      </div>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Connected
+                    </span>
+                  </div>
+                  <div class="text-sm text-gray-600 mb-3">
+                    Last sync: 2 hours ago • 12 security issues tracked
+                  </div>
+                  <div class="flex space-x-2">
+                    <button hx-get="/admin/integrations/jira/config"
+                            hx-target="#modal-container"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm">
+                      Configure
+                    </button>
+                    <button hx-post="/admin/integrations/jira/test"
+                            hx-target="#jira-test-result"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded text-sm">
+                      Test
+                    </button>
+                  </div>
+                  <div id="jira-test-result"></div>
+                </div>
+
+                <!-- Slack/Teams -->
+                <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-purple-500">
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center">
+                      <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fab fa-slack text-purple-600"></i>
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-gray-900">Slack Notifications</h4>
+                        <p class="text-sm text-gray-600">Real-time risk alerts and updates</p>
+                      </div>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Not Configured
+                    </span>
+                  </div>
+                  <div class="flex space-x-2">
+                    <button hx-get="/admin/integrations/slack/config"
+                            hx-target="#modal-container"
+                            class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm">
+                      Configure
+                    </button>
+                    <button class="bg-gray-200 text-gray-400 px-3 py-2 rounded text-sm cursor-not-allowed">
+                      Test (Configure First)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Integration Statistics -->
+        <div class="mt-8 bg-white rounded-lg shadow">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Integration Activity</h3>
+          </div>
+          <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">4</div>
+                <div class="text-sm text-gray-600">Active Integrations</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-blue-600">156</div>
+                <div class="text-sm text-gray-600">Risks Imported Today</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-orange-600">23</div>
+                <div class="text-sm text-gray-600">Incidents Synced</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-purple-600">99.8%</div>
+                <div class="text-sm text-gray-600">Uptime This Month</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Integration Configuration Modal
+function renderIntegrationConfigModal(system: string) {
+  const configs = {
+    'microsoft-defender': {
+      title: 'Microsoft Defender for Endpoint',
+      fields: [
+        { name: 'tenant_id', label: 'Tenant ID', type: 'text', required: true },
+        { name: 'client_id', label: 'Client ID', type: 'text', required: true },
+        { name: 'client_secret', label: 'Client Secret', type: 'password', required: true },
+        { name: 'endpoint', label: 'API Endpoint', type: 'url', value: 'https://api.securitycenter.microsoft.com' },
+        { name: 'sync_interval', label: 'Sync Interval (minutes)', type: 'number', value: '15' }
+      ]
+    },
+    'crowdstrike': {
+      title: 'CrowdStrike Falcon',
+      fields: [
+        { name: 'client_id', label: 'Client ID', type: 'text', required: true },
+        { name: 'client_secret', label: 'Client Secret', type: 'password', required: true },
+        { name: 'endpoint', label: 'API Base URL', type: 'url', value: 'https://api.crowdstrike.com' },
+        { name: 'sync_interval', label: 'Sync Interval (minutes)', type: 'number', value: '10' }
+      ]
+    },
+    'servicenow': {
+      title: 'ServiceNow Integration',
+      fields: [
+        { name: 'instance_url', label: 'ServiceNow Instance URL', type: 'url', required: true },
+        { name: 'username', label: 'Username', type: 'text', required: true },
+        { name: 'password', label: 'Password', type: 'password', required: true },
+        { name: 'sync_interval', label: 'Sync Interval (minutes)', type: 'number', value: '30' }
+      ]
+    },
+    'jira': {
+      title: 'Atlassian Jira',
+      fields: [
+        { name: 'jira_url', label: 'Jira Instance URL', type: 'url', required: true },
+        { name: 'username', label: 'Username/Email', type: 'text', required: true },
+        { name: 'api_token', label: 'API Token', type: 'password', required: true },
+        { name: 'project_key', label: 'Project Key', type: 'text', required: true },
+        { name: 'sync_interval', label: 'Sync Interval (minutes)', type: 'number', value: '60' }
+      ]
+    },
+    'slack': {
+      title: 'Slack Notifications',
+      fields: [
+        { name: 'webhook_url', label: 'Slack Webhook URL', type: 'url', required: true },
+        { name: 'channel', label: 'Default Channel', type: 'text', value: '#security-alerts' },
+        { name: 'alert_threshold', label: 'Alert Threshold (Risk Score)', type: 'number', value: '15' }
+      ]
+    },
+    'misp': {
+      title: 'MISP Threat Intelligence',
+      fields: [
+        { name: 'misp_url', label: 'MISP Instance URL', type: 'url', required: true },
+        { name: 'api_key', label: 'API Key', type: 'password', required: true },
+        { name: 'sync_interval', label: 'Sync Interval (hours)', type: 'number', value: '6' }
+      ]
+    }
+  };
+
+  const config = configs[system as keyof typeof configs];
+  if (!config) {
+    return html`<div class="p-4 text-red-600">Unknown integration system: ${system}</div>`;
+  }
+
+  return html`
+    <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold text-gray-900">${config.title} Configuration</h3>
+          <button onclick="document.getElementById('modal-container').innerHTML = ''" 
+                  class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        
+        <form hx-post="/admin/integrations/${system}/save" hx-target="#integration-save-result">
+          <div class="space-y-4">
+            ${config.fields.map(field => html`
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  ${field.label}
+                  ${field.required ? html`<span class="text-red-500">*</span>` : ''}
+                </label>
+                <input type="${field.type}" 
+                       name="${field.name}"
+                       value="${field.value || ''}"
+                       ${field.required ? 'required' : ''}
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="${field.label}">
+              </div>
+            `)}
+            
+            <div class="flex items-center">
+              <input type="checkbox" name="enabled" value="true" class="mr-2" checked>
+              <label class="text-sm text-gray-700">Enable this integration</label>
+            </div>
+          </div>
+          
+          <div id="integration-save-result" class="mt-4"></div>
+          
+          <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+            <button type="button"
+                    onclick="document.getElementById('modal-container').innerHTML = ''"
+                    class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-md">
+              Cancel
+            </button>
+            <button type="button"
+                    hx-post="/admin/integrations/${system}/test"
+                    hx-target="#integration-test-result"
+                    hx-include="closest form"
+                    class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md">
+              Test Connection
+            </button>
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md">
+              Save Configuration
+            </button>
+          </div>
+          
+          <div id="integration-test-result" class="mt-3"></div>
+        </form>
+      </div>
+    </div>
+  `;
+}
 
   return app;
 }

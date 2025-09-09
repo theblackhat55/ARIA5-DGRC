@@ -77,7 +77,7 @@ export function createAuthRoutes() {
       try {
         // Get user from database
         user = await c.env.DB.prepare(`
-          SELECT id, username, email, password_hash, first_name, last_name, 
+          SELECT id, username, email, password_hash, password_salt, first_name, last_name, 
                  role, organization_id, is_active
           FROM users 
           WHERE username = ? OR email = ?
@@ -123,10 +123,14 @@ export function createAuthRoutes() {
         // Account locking not implemented in basic schema
         // Skip lock check for simplicity
 
-        // Verify password (using bcrypt for hashed passwords)
+        // Verify password (PBKDF2, bcrypt, or plain text)
         try {
+          // Check if it's a PBKDF2 hash (128 char hex) with salt
+          if (user.password_salt && user.password_hash.length === 128) {
+            isValidPassword = await verifyPassword(password, user.password_hash, user.password_salt);
+          } 
           // Check if it's a bcrypt hash (starts with $2a$, $2b$, etc.)
-          if (user.password_hash.startsWith('$2')) {
+          else if (user.password_hash.startsWith('$2')) {
             const bcrypt = await import('bcryptjs');
             isValidPassword = await bcrypt.compare(password, user.password_hash);
           } else {

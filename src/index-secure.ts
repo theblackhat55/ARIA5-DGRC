@@ -34,6 +34,9 @@ import { cleanLayout } from './templates/layout-clean';
 import { loginPage } from './templates/auth/login';
 import { landingPage } from './templates/landing';
 
+// Import Phase 1 Demo components
+import { renderPhase1Demo } from './templates/phase1-demo';
+
 const app = new Hono();
 
 // PRODUCTION SECURITY MIDDLEWARE
@@ -399,6 +402,11 @@ app.get('/debug/operations-feeds', async (c) => {
       stack: error instanceof Error ? error.stack : undefined
     }, 500);
   }
+});
+
+// Phase 1 Demo Route (No Authentication Required)
+app.get('/phase1-demo', async (c) => {
+  return c.html(await renderPhase1Demo(c));
 });
 
 // Dashboard (requires authentication)

@@ -72,9 +72,37 @@ export interface StateTransition {
 
 export class DynamicRiskManager {
   private db: D1Database;
+  private approvalWorkflowEnabled: boolean = true;
+  private riskCascadeThreshold: number = 0.7;
   
   constructor(db: D1Database) {
     this.db = db;
+    this.loadSystemConfiguration();
+  }
+
+  /**
+   * Load system configuration for Phase 1 Dynamic GRC
+   */
+  private async loadSystemConfiguration(): Promise<void> {
+    try {
+      const config = await this.db.prepare(`
+        SELECT key, value FROM system_config 
+        WHERE key IN ('approval_workflow_enabled', 'risk_cascade_threshold')
+      `).all();
+
+      for (const setting of (config.results || [])) {
+        switch (setting.key) {
+          case 'approval_workflow_enabled':
+            this.approvalWorkflowEnabled = setting.value === 'true';
+            break;
+          case 'risk_cascade_threshold':
+            this.riskCascadeThreshold = parseFloat(setting.value) || 0.7;
+            break;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load system configuration:', error);
+    }
   }
 
   /**
@@ -158,7 +186,48 @@ export class DynamicRiskManager {
   }
 
   /**
-   * Transition risk between states
+   * Enhanced approval workflow for Phase 1 Dynamic GRC
+   */
+  async processRiskApproval(
+    riskId: number, 
+    approved: boolean, 
+    approvedBy: number, 
+    reason?: string
+  ): Promise<void> {
+    try {
+      const risk = await this.getRiskById(riskId);
+      if (!risk) {
+        throw new Error(`Risk ${riskId} not found`);
+      }
+
+      if (risk.approval_status !== 'pending') {
+        throw new Error(`Risk ${riskId} is not in pending approval state`);
+      }
+
+      const newStatus = approved ? 'active' : 'rejected';
+      const approvalStatus = approved ? 'approved' : 'rejected';
+      
+      // Update risk approval status
+      await this.db.prepare(`
+        UPDATE risks 
+        SET status = ?, 
+            approval_status = ?,
+            approved_by = ?, 
+            approved_at = datetime('now'),
+            updated_at = datetime('now')
+        WHERE id = ?
+      `).bind(newStatus, approvalStatus, approvedBy, riskId).run();
+
+      console.log(`✅ Risk ${riskId} ${approved ? 'approved' : 'rejected'} by user ${approvedBy}`);
+
+    } catch (error) {
+      console.error('❌ Error processing risk approval:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Legacy state transition method (maintained for compatibility)
    */
   async transitionRiskState(
     riskId: number, 
