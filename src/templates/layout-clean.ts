@@ -1762,26 +1762,40 @@ const renderCleanNavigation = (user: any) => html`
         <div id="mobile-menu" class="hidden bg-white border-t border-gray-200">
         <div class="px-4 py-4">
           
-          <!-- Quick Actions Section - Most Used Features First -->
+          <!-- Quick Actions Section - Enhanced with Phase 4-5 Features -->
           <div class="mb-6">
             <div class="grid grid-cols-2 gap-3 mb-4">
               <a href="/dashboard" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 hover:from-blue-100 hover:to-blue-150 active:scale-95 transition-all">
                 <i class="fas fa-tachometer-alt text-blue-600 text-xl mb-2"></i>
                 <span class="text-sm font-semibold text-blue-800">Dashboard</span>
               </a>
+              <a href="/ai-analytics" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 hover:from-purple-100 hover:to-purple-150 active:scale-95 transition-all">
+                <i class="fas fa-brain text-purple-600 text-xl mb-2"></i>
+                <span class="text-sm font-semibold text-purple-800">AI Analytics</span>
+                <span class="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded mt-1">Phase 4</span>
+              </a>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <a href="/predictions" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200 hover:from-indigo-100 hover:to-indigo-150 active:scale-95 transition-all">
+                <i class="fas fa-chart-line text-indigo-600 text-xl mb-2"></i>
+                <span class="text-sm font-semibold text-indigo-800">ML Predictions</span>
+                <span class="text-xs bg-indigo-200 text-indigo-700 px-2 py-1 rounded mt-1">Phase 4</span>
+              </a>
+              <a href="/telemetry" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-teal-50 to-teal-100 rounded-xl border border-teal-200 hover:from-teal-100 hover:to-teal-150 active:scale-95 transition-all">
+                <i class="fas fa-satellite-dish text-teal-600 text-xl mb-2"></i>
+                <span class="text-sm font-semibold text-teal-800">Telemetry</span>
+                <span class="text-xs bg-teal-200 text-teal-700 px-2 py-1 rounded mt-1">Phase 3</span>
+              </a>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
               <button hx-get="/risk/create" hx-target="#modal-container" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-xl border border-red-200 hover:from-red-100 hover:to-red-150 active:scale-95 transition-all">
                 <i class="fas fa-plus text-red-600 text-xl mb-2"></i>
                 <span class="text-sm font-semibold text-red-800">New Risk</span>
               </button>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <a href="/reports" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 hover:from-green-100 hover:to-green-150 active:scale-95 transition-all">
-                <i class="fas fa-chart-bar text-green-600 text-xl mb-2"></i>
-                <span class="text-sm font-semibold text-green-800">Reports</span>
-              </a>
-              <a href="/operations/intelligence-settings" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 hover:from-purple-100 hover:to-purple-150 active:scale-95 transition-all">
-                <i class="fas fa-brain text-purple-600 text-xl mb-2"></i>
-                <span class="text-sm font-semibold text-purple-800">Intel Settings</span>
+              <a href="/evidence" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 hover:from-green-100 hover:to-green-150 active:scale-95 transition-all">
+                <i class="fas fa-folder-open text-green-600 text-xl mb-2"></i>
+                <span class="text-sm font-semibold text-green-800">Evidence</span>
+                <span class="text-xs bg-green-200 text-green-700 px-2 py-1 rounded mt-1">Phase 5</span>
               </a>
             </div>
           </div>
@@ -1870,15 +1884,41 @@ const renderCleanNavigation = (user: any) => html`
               </div>
             </div>
             
-            <!-- Threat Intelligence & AI -->
-            <div class="bg-purple-50 rounded-xl p-1 border border-purple-100">
-              <div class="px-3 py-2 bg-purple-100 rounded-lg mb-2">
+            <!-- Phase 4-5: Enhanced AI & Analytics -->
+            <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-1 border border-purple-200">
+              <div class="px-3 py-2 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-lg mb-2">
                 <h3 class="text-sm font-bold text-purple-800 flex items-center">
                   <i class="fas fa-brain mr-2"></i>
-                  Threat Intelligence & AI
+                  Phase 4-5: Enhanced AI & ML
                 </h3>
               </div>
               <div class="px-2 space-y-1">
+                <!-- Core AI Features -->
+                <a href="/ai-analytics" class="flex items-center p-3 hover:bg-gradient-to-r hover:from-purple-100 hover:to-purple-150 rounded-lg transition-all active:scale-98 border border-purple-200 bg-white">
+                  <i class="fas fa-chart-bar text-purple-600 w-6 mr-3"></i>
+                  <span class="text-sm font-medium text-purple-800">AI Analytics Dashboard</span>
+                  <span class="ml-auto text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">Phase 4</span>
+                </a>
+                <a href="/predictions" class="flex items-center p-3 hover:bg-gradient-to-r hover:from-purple-100 hover:to-purple-150 rounded-lg transition-all active:scale-98 border border-purple-200 bg-white">
+                  <i class="fas fa-brain text-indigo-600 w-6 mr-3"></i>
+                  <span class="text-sm font-medium text-purple-800">ML Risk Predictions</span>
+                  <span class="ml-auto text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">Phase 4</span>
+                </a>
+                <a href="/telemetry" class="flex items-center p-3 hover:bg-gradient-to-r hover:from-teal-100 hover:to-teal-150 rounded-lg transition-all active:scale-98 border border-teal-200 bg-white">
+                  <i class="fas fa-satellite-dish text-teal-600 w-6 mr-3"></i>
+                  <span class="text-sm font-medium text-purple-800">Real-Time Telemetry</span>
+                  <span class="ml-auto text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded">Phase 3</span>
+                </a>
+                <a href="/evidence" class="flex items-center p-3 hover:bg-gradient-to-r hover:from-green-100 hover:to-green-150 rounded-lg transition-all active:scale-98 border border-green-200 bg-white">
+                  <i class="fas fa-folder-open text-green-600 w-6 mr-3"></i>
+                  <span class="text-sm font-medium text-purple-800">Evidence Collection</span>
+                  <span class="ml-auto text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Phase 5</span>
+                </a>
+                
+                <!-- Divider -->
+                <div class="border-t border-purple-200 my-2 mx-2"></div>
+                
+                <!-- Traditional TI Features -->
                 <a href="/intelligence" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98">
                   <i class="fas fa-shield-alt text-purple-600 w-6 mr-3"></i>
                   <span class="text-sm font-medium text-purple-800">TI Dashboard</span>
