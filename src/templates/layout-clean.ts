@@ -11,10 +11,26 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>${title} - ARIA5.1</title>
   
-
+  <!-- Progressive Web App Meta Tags -->
+  <meta name="application-name" content="ARIA5.1 Platform">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ARIA5.1">
+  <meta name="description" content="AI-powered enterprise risk intelligence and compliance platform">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="msapplication-TileColor" content="#667eea">
+  <meta name="msapplication-tap-highlight" content="no">
+  <meta name="theme-color" content="#667eea">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180' fill='%23667eea'><circle cx='90' cy='90' r='80' fill='%23ffffff'/><path d='M90 20C54.183 20 25 49.183 25 85s29.183 65 65 65 65-29.183 65-65S125.817 20 90 20zm26 78H64c-3.314 0-6-2.686-6-6s2.686-6 6-6h52c3.314 0 6 2.686 6 6s-2.686 6-6 6zm0-26H64c-3.314 0-6-2.686-6-6s2.686-6 6-6h52c3.314 0 6 2.686 6 6s-2.686 6-6 6z'/></svg>">
   
   <!-- Essential CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -38,6 +54,14 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
   
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  
+  <!-- Mobile Enhanced Styles -->
+  <link href="/static/mobile-enhanced-styles.css" rel="stylesheet">
+  
+  <!-- Enhanced Risk Dashboard Assets (for mobile optimization) -->
+  <link rel="preload" href="/static/enhanced-risk-dashboard-mobile.js" as="script">
+  <script src="/static/enhanced-risk-dashboard.js"></script>
+  <script src="/static/enhanced-risk-dashboard-mobile.js"></script>
   
   <style>
     /* Dropdown animations */
@@ -1402,6 +1426,54 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
       
       // Initialize mobile menu
       window.ARIA5.initMobileMenu();
+    });
+    
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('SW registered: ', registration);
+            
+            // Check for updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Show update available notification
+                  if (confirm('New version available. Update now?')) {
+                    newWorker.postMessage({ action: 'skipWaiting' });
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+          })
+          .catch((registrationError) => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+    
+    // Initialize mobile-specific features after DOM load
+    document.addEventListener('DOMContentLoaded', () => {
+      // Detect if mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                      (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform));
+      
+      if (isMobile && typeof MobileEnhancedRiskDashboard !== 'undefined') {
+        console.log('Initializing Mobile Enhanced Risk Dashboard');
+        window.mobileRiskDashboard = new MobileEnhancedRiskDashboard();
+      }
+      
+      // Add mobile-specific viewport handling
+      if (isMobile) {
+        // Add mobile class to body
+        document.body.classList.add('mobile-device');
+        
+        // Prevent zoom on input focus (iOS Safari)
+        document.addEventListener('touchstart', {}, true);
+      }
     });
   </script>
 </body>

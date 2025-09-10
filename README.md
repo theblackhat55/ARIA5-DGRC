@@ -155,12 +155,12 @@
 - **Touch-Friendly Service Indices**: Mobile-optimized SVI/SEI/BCI/ERI visualization and interaction
 - **Mobile Performance Metrics**: Real-time mobile performance monitoring and optimization
 
-### **📱 Mobile URLs - Enhanced Risk Engine (Production)**
-- **Main Mobile Platform**: https://df646a7d.dynamic-risk-intelligence.pages.dev
-- **PWA Manifest**: https://df646a7d.dynamic-risk-intelligence.pages.dev/manifest.json
-- **Service Worker**: https://df646a7d.dynamic-risk-intelligence.pages.dev/sw.js
-- **Mobile Dashboard CSS**: https://df646a7d.dynamic-risk-intelligence.pages.dev/static/mobile-enhanced-styles.css
-- **Mobile JavaScript**: https://df646a7d.dynamic-risk-intelligence.pages.dev/static/enhanced-risk-dashboard-mobile.js
+### **📱 Complete ARIA5.1 Platform with Mobile PWA (Production)**
+- **Main Platform**: https://831d6543.dynamic-risk-intelligence.pages.dev
+- **PWA Manifest**: https://831d6543.dynamic-risk-intelligence.pages.dev/manifest.json
+- **Service Worker**: https://831d6543.dynamic-risk-intelligence.pages.dev/sw.js
+- **Mobile Dashboard CSS**: https://831d6543.dynamic-risk-intelligence.pages.dev/static/mobile-enhanced-styles.css
+- **Mobile JavaScript**: https://831d6543.dynamic-risk-intelligence.pages.dev/static/enhanced-risk-dashboard-mobile.js
 
 ### **🔧 Mobile Technical Implementation**
 - **Mobile Detection**: Automatic mobile device detection and mobile-specific feature loading
@@ -464,7 +464,7 @@
 
 **ARIA5.1 Complete Platform (All Phases 1-5) is now live on Cloudflare Pages**, providing the full executive intelligence platform with service-level business impact analysis and evidence auto-collection capabilities.
 
-**🌐 Latest Live Production URL**: https://df646a7d.dynamic-risk-intelligence.pages.dev
+**🌐 Latest Live Production URL**: https://831d6543.dynamic-risk-intelligence.pages.dev
 
 ### ✅ Successfully Deployed Features (All Phases + Enhanced Risk Engine)
 - **Enhanced Risk Engine**: 0-100 normalized scoring backbone with Service Indices (SVI/SEI/BCI/ERI) ✅

@@ -7,13 +7,13 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [
     build({
-      entry: 'src/index.ts', // Mobile-optimized Enhanced Risk Engine
+      entry: 'src/index-secure.ts', // ARIA5.1 Production with Full Platform + Mobile Enhancements
       outputDir: 'dist',
       minify: true
     }),
     devServer({
       adapter,
-      entry: 'src/index.ts' // Mobile-optimized Enhanced Risk Engine
+      entry: 'src/index-secure.ts' // ARIA5.1 Production with Full Platform + Mobile Enhancements
     })
   ],
   

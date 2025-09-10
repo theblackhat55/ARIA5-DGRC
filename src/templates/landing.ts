@@ -5,8 +5,26 @@ export const landingPage = () => html`
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>ARIA5.1 - AI Risk Intelligence Platform</title>
+  
+  <!-- Progressive Web App Meta Tags -->
+  <meta name="application-name" content="ARIA5.1 Platform">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ARIA5.1">
+  <meta name="description" content="AI-powered enterprise risk intelligence and compliance platform">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="msapplication-TileColor" content="#667eea">
+  <meta name="msapplication-tap-highlight" content="no">
+  <meta name="theme-color" content="#667eea">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180' fill='%23667eea'><circle cx='90' cy='90' r='80' fill='%23ffffff'/><path d='M90 20C54.183 20 25 49.183 25 85s29.183 65 65 65 65-29.183 65-65S125.817 20 90 20zm26 78H64c-3.314 0-6-2.686-6-6s2.686-6 6-6h52c3.314 0 6 2.686 6 6s-2.686 6-6 6zm0-26H64c-3.314 0-6-2.686-6-6s2.686-6 6-6h52c3.314 0 6 2.686 6 6s-2.686 6-6 6z'/></svg>">
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -16,6 +34,9 @@ export const landingPage = () => html`
   
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  
+  <!-- Mobile Enhanced Styles -->
+  <link href="/static/mobile-enhanced-styles.css" rel="stylesheet">
   
   <style>
     .gradient-bg {
@@ -569,6 +590,32 @@ export const landingPage = () => html`
         nav.classList.add('bg-white/80');
       } else {
         nav.classList.remove('bg-white/80');
+      }
+    });
+    
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('SW registered: ', registration);
+          })
+          .catch((registrationError) => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+    
+    // Mobile-specific enhancements
+    document.addEventListener('DOMContentLoaded', () => {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // Add mobile class to body
+        document.body.classList.add('mobile-device');
+        
+        // Prevent zoom on input focus (iOS Safari)
+        document.addEventListener('touchstart', {}, true);
       }
     });
   </script>
