@@ -5,8 +5,8 @@ module.exports = {
     {
       name: 'aria51-enterprise',
       script: 'npx',
-      args: 'wrangler pages dev dist --d1=aria51d-production --local --ip 0.0.0.0 --port 3000 --compatibility-flags nodejs_compat --compatibility-date 2025-01-01',
-      cwd: '/home/user/ARIA5-DGRC',
+      args: 'wrangler pages dev dist --d1=ARIA5-DGRC-production --local --ip 0.0.0.0 --port 3000 --compatibility-flags nodejs_compat --compatibility-date 2025-01-01',
+      cwd: '/home/user/webapp',
       env: {
         NODE_ENV: 'development',
         PORT: 3000,
@@ -39,7 +39,7 @@ module.exports = {
       name: 'aria51-workers',
       script: 'node',
       args: 'src/workers/background-tasks.js',
-      cwd: '/home/user/ARIA5-DGRC',
+      cwd: '/home/user/webapp',
       env: {
         NODE_ENV: 'development',
         WORKER_TYPE: 'background'
