@@ -551,7 +551,7 @@ app.route('/phase1', createPhase1DashboardRoutes());
 app.route('/phase2', createPhase2DashboardRoutes());
 
 // Phase 3 Advanced Integration & Automation Dashboard (integrated)
-app.route('/phase3', createPhase3DashboardRoutes());
+app.route('/dashboard/phase3/integrations', createPhase3DashboardRoutes());
 
 // Phase 4 Advanced Automation - Evidence Collection Dashboard (integrated)
 import { phase4EvidenceDashboard } from './routes/phase4-evidence-dashboard-routes';
