@@ -3,9 +3,9 @@
 module.exports = {
   apps: [
     {
-      name: 'aria51-enterprise',
+      name: 'webapp',
       script: 'npx',
-      args: 'wrangler pages dev dist --d1=ARIA5-DGRC-production --local --ip 0.0.0.0 --port 3000 --compatibility-flags nodejs_compat --compatibility-date 2025-01-01',
+      args: 'wrangler pages dev dist --d1=webapp-production --local --ip 0.0.0.0 --port 3000 --compatibility-flags nodejs_compat --compatibility-date 2025-01-01',
       cwd: '/home/user/webapp',
       env: {
         NODE_ENV: 'development',
