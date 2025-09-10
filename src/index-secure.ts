@@ -24,6 +24,7 @@ import { tiGrcRoutes } from './routes/api-ti-grc-integration';
 import complianceAutomationApi from './routes/compliance-automation-api';
 import { createPhase1DashboardRoutes } from './routes/phase1-dashboard-routes';
 import { createPhase2DashboardRoutes } from './routes/phase2-dashboard-routes';
+import { createPhase3DashboardRoutes } from './routes/phase3-dashboard-routes';
 // MULTI-TENANCY FEATURE - TEMPORARILY DISABLED
 // TODO: Re-enable when multi-tenancy features are needed
 // import enterpriseMultiTenancyApi from './routes/enterprise-multitenancy-api';
@@ -549,6 +550,17 @@ app.route('/phase1', createPhase1DashboardRoutes());
 // Phase 2 Unified AI Orchestration Dashboard (integrated)
 app.route('/phase2', createPhase2DashboardRoutes());
 
+// Phase 3 Advanced Integration & Automation Dashboard (integrated)
+app.route('/phase3', createPhase3DashboardRoutes());
+
+// Phase 4 Advanced Automation - Evidence Collection Dashboard (integrated)
+import { phase4EvidenceDashboard } from './routes/phase4-evidence-dashboard-routes';
+app.route('/dashboard/phase4/evidence', phase4EvidenceDashboard);
+
+// Phase 5 Executive Intelligence Dashboard (integrated)
+import { phase5ExecutiveDashboard } from './routes/phase5-executive-dashboard';
+app.route('/dashboard/phase5/executive', phase5ExecutiveDashboard);
+
 // Risk Management (requires authentication, works with database fix)
 app.route('/risk', createRiskRoutesARIA5());
 
@@ -928,6 +940,18 @@ app.route('/api/dynamic-risk', phase1Api);
 // PHASE 2 UNIFIED AI ORCHESTRATION API (requires authentication)
 import phase2Api from './routes/phase2-api';
 app.route('/api/phase2', phase2Api);
+
+// PHASE 3 ADVANCED INTEGRATION & AUTOMATION API (requires authentication)
+import phase3Api from './routes/phase3-api';
+app.route('/api/phase3', phase3Api);
+
+// PHASE 4 ADVANCED AUTOMATION - EVIDENCE COLLECTION API (requires authentication)
+import { phase4EvidenceAPI } from './routes/phase4-evidence-api';
+app.route('/api/v2/evidence', phase4EvidenceAPI);
+
+// PHASE 5 EXECUTIVE INTELLIGENCE - SERVICE-LEVEL BUSINESS IMPACT API (requires authentication)
+import { phase5ExecutiveAPI } from './routes/phase5-executive-api';
+app.route('/api/v2/executive', phase5ExecutiveAPI);
 
 // Enterprise Multi-Tenancy API - TEMPORARILY DISABLED
 // TODO: Re-enable when multi-tenancy features are needed
