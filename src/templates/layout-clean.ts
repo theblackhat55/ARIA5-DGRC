@@ -580,7 +580,7 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
                   <span class="ml-2 text-xs text-gray-500">${new Date().toLocaleTimeString()}</span>
                 </div>
                 <p class="text-gray-700 text-sm leading-relaxed">
-                  👋 Hello! I'm ARIA, your AI-powered risk intelligence assistant. I'm here to help you with:
+                  👋 Hello! I'm ARIA, your intelligent assistant. I'm here to help you with:
                 </p>
                 <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
                   <div class="bg-red-50 p-2 rounded-lg">

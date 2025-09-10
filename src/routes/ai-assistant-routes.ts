@@ -29,7 +29,7 @@ export function createAIAssistantRoutes() {
                       <i class="fas fa-robot text-blue-600 mr-2"></i>
                       ARIA Assistant
                     </h1>
-                    <p class="text-gray-600 mt-1">AI-powered risk intelligence and compliance assistant</p>
+                    <p class="text-gray-600 mt-1">Your intelligent risk and compliance assistant</p>
                   </div>
                   <div class="flex items-center space-x-3">
                     <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
@@ -67,15 +67,15 @@ export function createAIAssistantRoutes() {
                         <div class="flex-1">
                           <div class="bg-blue-50 rounded-lg px-4 py-3">
                             <p class="text-gray-800">
-                              <strong>Hello ${user.name}!</strong> I'm ARIA, your enhanced AI threat intelligence assistant. 
+                              <strong>Hello ${user.name}!</strong> I'm ARIA, your intelligent assistant. 
                               I can help you with:
                             </p>
                             <ul class="mt-2 text-gray-700 space-y-1">
-                              <li>• <strong>Threat Intelligence</strong> - IOC analysis, campaign attribution</li>
-                              <li>• <strong>Risk Assessment</strong> - ML-enhanced risk scoring</li>
-                              <li>• <strong>Behavioral Analytics</strong> - Anomaly detection insights</li>
-                              <li>• <strong>Compliance</strong> - Framework guidance & recommendations</li>
-                              <li>• <strong>Security Operations</strong> - Feed management & correlation</li>
+                              <li>• <strong>Risk Analysis</strong> - Current risk landscape assessment</li>
+                              <li>• <strong>Compliance Status</strong> - Framework guidance & reviews</li>
+                              <li>• <strong>Threat Analysis</strong> - Security intelligence insights</li>
+                              <li>• <strong>Recommendations</strong> - AI-powered suggestions</li>
+                              <li>• <strong>Platform Assistance</strong> - Help with platform features</li>
                             </ul>
                             <p class="mt-2 text-gray-600 text-sm">How can I assist you today?</p>
                           </div>
@@ -153,18 +153,15 @@ export function createAIAssistantRoutes() {
                         </div>
                       </button>
 
-                      <button class="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
-                              hx-post="/ai/behavioral-insights"
-                              hx-target="#chat-messages"
-                              hx-swap="beforeend">
+                      <a href="/compliance" class="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors block">
                         <div class="flex items-center">
-                          <i class="fas fa-brain text-orange-500 mr-3"></i>
+                          <i class="fas fa-clipboard-list text-blue-500 mr-3"></i>
                           <div>
-                            <div class="font-medium text-gray-900">Behavioral Insights</div>
-                            <div class="text-sm text-gray-500">ML-powered threat patterns</div>
+                            <div class="font-medium text-gray-900">Compliance Dashboard</div>
+                            <div class="text-sm text-gray-500">View framework status</div>
                           </div>
                         </div>
-                      </button>
+                      </a>
 
                       <button class="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
                               hx-post="/ai/recommendations"
@@ -197,8 +194,8 @@ export function createAIAssistantRoutes() {
                         <span class="text-sm font-medium text-blue-600">Updated</span>
                       </div>
                       <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-600">Model Version</span>
-                        <span class="text-sm font-medium text-gray-900">GPT-4</span>
+                        <span class="text-sm text-gray-600">Platform Status</span>
+                        <span class="text-sm font-medium text-green-600">Online</span>
                       </div>
                     </div>
                   </div>
@@ -881,34 +878,7 @@ Please provide a comprehensive response based on the current platform data and y
     `);
   });
 
-  // Behavioral Insights endpoint
-  app.post('/behavioral-insights', async (c) => {
-    return c.html(html`
-      <div class="flex items-start space-x-3">
-        <div class="flex-shrink-0">
-          <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-            <i class="fas fa-robot text-purple-600 text-sm"></i>
-          </div>
-        </div>
-        <div class="flex-1">
-          <div class="bg-gray-100 rounded-lg px-4 py-3">
-            <p class="text-gray-800 text-sm">
-              <strong>🧠 ML Behavioral Analysis:</strong><br><br>
-              Current behavioral patterns detected:<br>
-              • <span class="text-red-600">Anomaly deviation score: 0.92</span> (C2 communication)<br>
-              • <span class="text-yellow-600">New attack vector</span> confidence: 0.84<br>
-              • <span class="text-blue-600">APT-28 behavioral signature</span>: 0.94 match<br>
-              • <span class="text-green-600">Attack sequence patterns</span>: Spear phishing → Persistence → PowerShell<br><br>
-              <strong>🔮 Predictive Insights:</strong><br>
-              • Next attack likelihood: <span class="text-red-600">High (0.87)</span><br>
-              • Estimated campaign duration: 14-21 days
-            </p>
-          </div>
-          <p class="text-xs text-gray-500 mt-1">ARIA • Behavioral Analytics • Just now</p>
-        </div>
-      </div>
-    `);
-  });
+
 
   return app;
 }
