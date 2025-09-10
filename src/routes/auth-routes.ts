@@ -50,7 +50,7 @@ export function createAuthRoutes() {
       const clientIP = getClientIP(c.req.raw);
       const userAgent = c.req.header('User-Agent') || 'Unknown';
       const auditService = new SimpleAuditLoggingService(c.env.DB);
-      const rateLimit = checkRateLimit(`login:${clientIP}`, 5, 15); // 5 attempts per 15 minutes
+      const rateLimit = checkRateLimit(`login:${clientIP}`, 100, 15); // 100 attempts per 15 minutes (demo mode)
       
       if (!rateLimit.allowed) {
         const resetTime = new Date(rateLimit.resetTime).toLocaleTimeString();
