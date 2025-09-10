@@ -554,11 +554,11 @@ app.route('/phase2', createPhase2DashboardRoutes());
 app.route('/dashboard/phase3/integrations', createPhase3DashboardRoutes());
 
 // Phase 4 Advanced Automation - Evidence Collection Dashboard (integrated)
-import { phase4EvidenceDashboard } from './routes/phase4-evidence-dashboard-routes';
+import { phase4EvidenceDashboard } from './routes/phase4-evidence-dashboard-simple';
 app.route('/dashboard/phase4/evidence', phase4EvidenceDashboard);
 
 // Phase 5 Executive Intelligence Dashboard (integrated)
-import { phase5ExecutiveDashboard } from './routes/phase5-executive-dashboard';
+import { phase5ExecutiveDashboard } from './routes/phase5-executive-dashboard-simple';
 app.route('/dashboard/phase5/executive', phase5ExecutiveDashboard);
 
 // Risk Management (requires authentication, works with database fix)

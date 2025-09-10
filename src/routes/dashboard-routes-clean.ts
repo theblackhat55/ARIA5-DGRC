@@ -530,6 +530,50 @@ const renderCleanDashboard = (stats: any, user: any) => html`
         </div>
       </div>
       
+      <!-- ARIA5.1 Phase Dashboards -->
+      <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-200 mb-6 sm:mb-8">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 class="text-lg sm:text-xl font-semibold text-gray-900">ARIA5.1 Phase Dashboards</h2>
+          <i class="fas fa-rocket text-blue-500"></i>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+          <a href="/dashboard/phase1/risks" 
+             class="group flex flex-col items-center justify-center p-4 sm:px-6 sm:py-6 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 transform hover:-translate-y-1 hover:shadow-lg active:scale-95">
+            <i class="fas fa-shield-alt text-xl sm:text-2xl mb-2 group-hover:scale-110 transition-transform"></i>
+            <span class="font-medium text-sm sm:text-base text-center">Phase 1</span>
+            <span class="text-xs text-red-100 mt-1 text-center">Dynamic Risk</span>
+          </a>
+          
+          <a href="/dashboard/phase2/ai" 
+             class="group flex flex-col items-center justify-center p-4 sm:px-6 sm:py-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:-translate-y-1 hover:shadow-lg active:scale-95">
+            <i class="fas fa-brain text-xl sm:text-2xl mb-2 group-hover:scale-110 transition-transform"></i>
+            <span class="font-medium text-sm sm:text-base text-center">Phase 2</span>
+            <span class="text-xs text-blue-100 mt-1 text-center">AI Orchestration</span>
+          </a>
+          
+          <a href="/dashboard/phase3/integrations" 
+             class="group flex flex-col items-center justify-center p-4 sm:px-6 sm:py-6 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 transform hover:-translate-y-1 hover:shadow-lg active:scale-95">
+            <i class="fas fa-network-wired text-xl sm:text-2xl mb-2 group-hover:scale-110 transition-transform"></i>
+            <span class="font-medium text-sm sm:text-base text-center">Phase 3</span>
+            <span class="text-xs text-emerald-100 mt-1 text-center">Integration</span>
+          </a>
+          
+          <a href="/dashboard/phase4/evidence" 
+             class="group flex flex-col items-center justify-center p-4 sm:px-6 sm:py-6 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 transform hover:-translate-y-1 hover:shadow-lg active:scale-95">
+            <i class="fas fa-robot text-xl sm:text-2xl mb-2 group-hover:scale-110 transition-transform"></i>
+            <span class="font-medium text-sm sm:text-base text-center">Phase 4</span>
+            <span class="text-xs text-purple-100 mt-1 text-center">Evidence Auto</span>
+          </a>
+          
+          <a href="/dashboard/phase5/executive" 
+             class="group flex flex-col items-center justify-center p-4 sm:px-6 sm:py-6 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 transition-all duration-200 transform hover:-translate-y-1 hover:shadow-lg active:scale-95">
+            <i class="fas fa-chart-line text-xl sm:text-2xl mb-2 group-hover:scale-110 transition-transform"></i>
+            <span class="font-medium text-sm sm:text-base text-center">Phase 5</span>
+            <span class="text-xs text-indigo-100 mt-1 text-center">Executive Intel</span>
+          </a>
+        </div>
+      </div>
+      
       <!-- System Status -->
       <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-200">
         <div class="flex items-center justify-between mb-4 sm:mb-6">

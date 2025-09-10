@@ -2,9 +2,11 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import phase1Api from './routes/phase1-api'
+import enhancedRiskEngineApi from './routes/enhanced-risk-engine-api'
 
 type Bindings = {
   DB: D1Database;
+  AI?: any; // Cloudflare AI binding for enhanced features
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -17,6 +19,10 @@ app.use('/static/*', serveStatic({ root: './public' }))
 
 // Mount Phase 1 API routes
 app.route('/api', phase1Api)
+
+// Mount Enhanced Risk Engine API routes
+app.route('/api/enhanced-risk-engine', enhancedRiskEngineApi)
+app.route('/api/v2/risk-engine', enhancedRiskEngineApi) // Alternative path
 
 // Default route - Dynamic Risk Intelligence Platform Dashboard
 app.get('/', (c) => {
@@ -228,6 +234,11 @@ app.get('/', (c) => {
 
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script src="/static/app.js"></script>
+        <!-- Enhanced Risk Dashboard Integration -->
+        <script src="/static/enhanced-risk-dashboard.js"></script>
+        <script>
+          console.log('Enhanced Risk Dashboard loaded - native integration active');
+        </script>
     </body>
     </html>
   `)
