@@ -1519,6 +1519,21 @@ const renderCleanNavigation = (user: any) => html`
                     <div class="text-xs text-gray-500">AI-powered control linkage</div>
                   </div>
                 </a>
+                <div class="border-t border-gray-100 my-2"></div>
+                <a href="/phase1" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                  <i class="fas fa-shield-alt w-5 text-blue-600 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Dynamic Risk Intelligence</div>
+                    <div class="text-xs text-gray-500">Phase 1 - Service-centric automation</div>
+                  </div>
+                </a>
+                <a href="/phase2" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
+                  <i class="fas fa-brain w-5 text-purple-600 mr-3"></i>
+                  <div>
+                    <div class="font-medium">AI Orchestration</div>
+                    <div class="text-xs text-gray-500">Phase 2 - Unified AI intelligence</div>
+                  </div>
+                </a>
               </div>
             </div>
           </div>
@@ -1823,6 +1838,14 @@ const renderCleanNavigation = (user: any) => html`
                 <a href="/risk-controls" class="flex items-center p-3 hover:bg-red-100 rounded-lg transition-colors active:scale-98">
                   <i class="fas fa-link text-red-600 w-6 mr-3"></i>
                   <span class="text-sm font-medium text-red-800">Control Mapping</span>
+                </a>
+                <a href="/phase1" class="flex items-center p-3 hover:bg-blue-100 rounded-lg transition-colors active:scale-98 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 mt-2">
+                  <i class="fas fa-shield-alt text-blue-600 w-6 mr-3"></i>
+                  <span class="text-sm font-medium text-blue-800">Dynamic Risk Intelligence</span>
+                </a>
+                <a href="/phase2" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98 bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 mt-2">
+                  <i class="fas fa-brain text-purple-600 w-6 mr-3"></i>
+                  <span class="text-sm font-medium text-purple-800">AI Orchestration</span>
                 </a>
               </div>
             </div>

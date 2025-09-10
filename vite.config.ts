@@ -7,13 +7,13 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [
     build({
-      entry: 'src/index.ts', // Points to HTMX version
+      entry: 'src/index-secure.ts', // ARIA5.1 Production with Phase 1 Integration
       outputDir: 'dist',
       minify: true
     }),
     devServer({
       adapter,
-      entry: 'src/index.ts' // Points to HTMX version
+      entry: 'src/index-secure.ts' // ARIA5.1 Production with Phase 1 Integration
     })
   ],
   

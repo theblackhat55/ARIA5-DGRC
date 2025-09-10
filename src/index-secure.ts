@@ -22,6 +22,8 @@ import conversationalAssistantRoutes from './routes/conversational-assistant';
 import { apiThreatIntelRoutes } from './routes/api-threat-intelligence';
 import { tiGrcRoutes } from './routes/api-ti-grc-integration';
 import complianceAutomationApi from './routes/compliance-automation-api';
+import { createPhase1DashboardRoutes } from './routes/phase1-dashboard-routes';
+import { createPhase2DashboardRoutes } from './routes/phase2-dashboard-routes';
 // MULTI-TENANCY FEATURE - TEMPORARILY DISABLED
 // TODO: Re-enable when multi-tenancy features are needed
 // import enterpriseMultiTenancyApi from './routes/enterprise-multitenancy-api';
@@ -541,6 +543,12 @@ app.get('/phase1-demo', async (c) => {
 // Dashboard (requires authentication)
 app.route('/dashboard', createCleanDashboardRoutes());
 
+// Phase 1 Dynamic Risk Intelligence Dashboard (integrated)
+app.route('/phase1', createPhase1DashboardRoutes());
+
+// Phase 2 Unified AI Orchestration Dashboard (integrated)
+app.route('/phase2', createPhase2DashboardRoutes());
+
 // Risk Management (requires authentication, works with database fix)
 app.route('/risk', createRiskRoutesARIA5());
 
@@ -912,6 +920,14 @@ app.route('/api/risk-consistency', apiRiskConsistencyRoutes);
 
 // Advanced Compliance Automation API (requires authentication)
 app.route('/api/compliance-automation', complianceAutomationApi);
+
+// PHASE 1 DYNAMIC RISK INTELLIGENCE API (requires authentication)
+import phase1Api from './routes/phase1-api';
+app.route('/api/dynamic-risk', phase1Api);
+
+// PHASE 2 UNIFIED AI ORCHESTRATION API (requires authentication)
+import phase2Api from './routes/phase2-api';
+app.route('/api/phase2', phase2Api);
 
 // Enterprise Multi-Tenancy API - TEMPORARILY DISABLED
 // TODO: Re-enable when multi-tenancy features are needed
