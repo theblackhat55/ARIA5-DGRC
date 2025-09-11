@@ -34,7 +34,7 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
   
   <!-- Essential CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   
   <!-- Preload Font Awesome -->
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
@@ -53,7 +53,7 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
   </style>
   
   <!-- HTMX -->
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   
   <!-- Mobile Enhanced Styles -->
   <link href="/static/mobile-enhanced-styles.css" rel="stylesheet">

@@ -143,6 +143,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  // Skip external CDN resources entirely to avoid CSP violations
+  if (url.hostname.includes('cdn.') || 
+      url.hostname.includes('unpkg.com') || 
+      url.hostname.includes('jsdelivr.net') ||
+      url.hostname.includes('cdnjs.cloudflare.com')) {
+    return;
+  }
+  
   // Determine caching strategy based on request type
   let strategy = CACHE_STRATEGIES.NETWORK_FIRST;
   let cacheName = DYNAMIC_CACHE;
@@ -458,11 +466,12 @@ function isStaticAsset(url) {
   const staticExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff', '.woff2'];
   const pathname = url.pathname.toLowerCase();
   
-  return staticExtensions.some(ext => pathname.endsWith(ext)) ||
-         pathname.includes('/static/') ||
-         url.hostname.includes('cdn.') ||
-         url.hostname.includes('unpkg.com') ||
-         url.hostname.includes('jsdelivr.net');
+  // Only cache internal static assets, not external CDN resources
+  return (staticExtensions.some(ext => pathname.endsWith(ext)) ||
+          pathname.includes('/static/')) &&
+         !url.hostname.includes('cdn.') &&
+         !url.hostname.includes('unpkg.com') &&
+         !url.hostname.includes('jsdelivr.net');
 }
 
 /**
