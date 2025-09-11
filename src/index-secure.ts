@@ -23,6 +23,7 @@ import { apiThreatIntelRoutes } from './routes/api-threat-intelligence';
 import { tiGrcRoutes } from './routes/api-ti-grc-integration';
 import complianceAutomationApi from './routes/compliance-automation-api';
 import { enhancedRiskEngineApi } from './routes/api-enhanced-risk-engine';
+import { servicesApi } from './routes/api-services';
 import { createPhase1DashboardRoutes } from './routes/phase1-dashboard-routes';
 import { createPhase2DashboardRoutes } from './routes/phase2-dashboard-routes';
 import { createPhase3DashboardRoutes } from './routes/phase3-dashboard-routes';
@@ -949,6 +950,9 @@ app.route('/api/compliance-automation', complianceAutomationApi);
 
 // Enhanced Risk Engine API (requires authentication)
 app.route('/api/enhanced-risk-engine', enhancedRiskEngineApi);
+
+// Services API (requires authentication)
+app.route('/api/services', servicesApi);
 
 // PHASE 1 DYNAMIC RISK INTELLIGENCE API (requires authentication)
 import phase1Api from './routes/phase1-api';

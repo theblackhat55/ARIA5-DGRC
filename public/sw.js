@@ -9,7 +9,7 @@ const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
-// Files to cache immediately
+// Files to cache immediately (only internal assets to avoid CSP violations)
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -17,20 +17,16 @@ const STATIC_ASSETS = [
   '/static/enhanced-risk-dashboard-mobile.js',
   '/static/mobile-enhanced-styles.css',
   '/static/styles.css',
-  '/static/app.js',
-  // External CDN assets (cached for offline use)
-  'https://cdn.tailwindcss.com/3.3.0',
-  'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css',
-  'https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js',
-  'https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js'
+  '/static/app.js'
+  // Note: External CDN assets excluded to avoid CSP violations
+  // They will be loaded directly from CDN as needed
 ];
 
-// API endpoints to cache
+// API endpoints to cache (updated with correct endpoints)
 const API_ENDPOINTS = [
+  '/api/enhanced-risk-engine/status',
   '/api/enhanced-risk-engine/health',
-  '/api/enhanced-risk-engine/service-indices',
-  '/api/services',
+  '/api/services?status=active&limit=20',
   '/api/health'
 ];
 
