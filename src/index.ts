@@ -5,7 +5,9 @@ import phase1Api from './routes/phase1-api'
 import enhancedRiskEngineApi from './routes/enhanced-risk-engine-api'
 import dynamicRiskAnalysisApi from './routes/api-dynamic-risk-analysis'
 import dynamicRiskDashboardRoutes from './routes/dynamic-risk-dashboard-routes'
-import dynamicRiskAnalysisApi from './routes/api-dynamic-risk-analysis'
+import { apiThreatIntelRoutes } from './routes/api-threat-intelligence'
+import { apiEnhancedRiskEngineRoutes } from './routes/api-enhanced-risk-engine'
+import { apiServicesRoutes } from './routes/api-services'
 
 type Bindings = {
   DB: D1Database;
@@ -27,14 +29,16 @@ app.route('/api', phase1Api)
 app.route('/api/enhanced-risk-engine', enhancedRiskEngineApi)
 app.route('/api/v2/risk-engine', enhancedRiskEngineApi) // Alternative path
 
+// Mount TI-Enhanced Risk Management API routes (Phase 2 & 3)
+app.route('/api/threat-intelligence', apiThreatIntelRoutes)
+app.route('/api/enhanced-risk', apiEnhancedRiskEngineRoutes)
+app.route('/api/services', apiServicesRoutes)
+
 // Mount Dynamic Risk Analysis API routes
 app.route('/api/dynamic-risk-analysis', dynamicRiskAnalysisApi)
 
 // Mount Dynamic Risk Dashboard UI routes
 app.route('/dynamic-risk', dynamicRiskDashboardRoutes)
-
-// Mount Dynamic Risk Analysis API routes
-app.route('/api/dynamic-risk-analysis', dynamicRiskAnalysisApi)
 
 // Default route - Dynamic Risk Intelligence Platform Dashboard
 app.get('/', (c) => {

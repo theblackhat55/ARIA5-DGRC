@@ -5,6 +5,7 @@ import { requirePermission } from '../middleware/rbac';
 import { ThreatIntelligenceService } from '../services/threat-intelligence';
 import { EnhancedThreatIntelligenceService } from '../services/enhanced-threat-intelligence';
 import { EnhancedDynamicRiskManager, SecurityTrigger, OperationalTrigger, ComplianceTrigger, StrategicTrigger } from '../services/enhanced-dynamic-risk-manager';
+import { TIIngestionService } from '../services/ti-ingestion';
 
 const apiThreatIntelRoutes = new Hono();
 
@@ -14,6 +15,15 @@ apiThreatIntelRoutes.use('*', requireAuth);
 // Initialize services
 const threatIntelService = new ThreatIntelligenceService();
 const enhancedThreatIntelService = new EnhancedThreatIntelligenceService();
+
+// Initialize TI Ingestion Service (requires DB binding)
+const initializeTIIngestionService = (c: any) => {
+  const db = c.env?.DB;
+  if (!db) {
+    throw new Error('Database binding not available');
+  }
+  return new TIIngestionService(db);
+};
 
 // Dynamic Risk Manager (initialized with DB binding from route context)
 const initializeDynamicRiskManager = (c: any) => {
@@ -1047,6 +1057,469 @@ apiThreatIntelRoutes.get('/service-risk-analysis', requirePermission('threat_int
     return c.json({
       success: false,
       error: 'Failed to retrieve service risk analysis', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// ========================================
+// TI INFRASTRUCTURE AND DATA INGESTION API (Phase 2)
+// New TI connector management and data ingestion endpoints
+// ========================================
+
+// Get TI Sources Status
+apiThreatIntelRoutes.get('/sources', requirePermission('threat_intel:view'), async (c) => {
+  try {
+    const { DB } = c.env as { DB: D1Database };
+    
+    const sources = await DB.prepare(`
+      SELECT id, name, type, url, api_key_required, status, error_message, last_updated, created_at
+      FROM ti_sources
+      ORDER BY name
+    `).all();
+    
+    return c.json({
+      success: true,
+      data: sources.results || [],
+      total: sources.results?.length || 0
+    });
+  } catch (error) {
+    console.error('Error getting TI sources:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to get TI sources',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Add New TI Source
+apiThreatIntelRoutes.post('/sources', requirePermission('threat_intel:manage'), async (c) => {
+  try {
+    const { DB } = c.env as { DB: D1Database };
+    const sourceData = await c.req.json();
+    const userEmail = getCookie(c, 'user_email') || '';
+    
+    // Validate required fields
+    const requiredFields = ['name', 'type', 'url'];
+    for (const field of requiredFields) {
+      if (!sourceData[field]) {
+        return c.json({ 
+          success: false, 
+          error: `Missing required field: ${field}` 
+        }, 400);
+      }
+    }
+    
+    const result = await DB.prepare(`
+      INSERT INTO ti_sources (name, type, url, api_key_required, status)
+      VALUES (?, ?, ?, ?, 'inactive')
+    `).bind(
+      sourceData.name,
+      sourceData.type,
+      sourceData.url,
+      sourceData.api_key_required || false
+    ).run();
+    
+    console.log(`TI source created by ${userEmail}:`, {
+      source_id: result.meta?.last_row_id,
+      source_name: sourceData.name,
+      source_type: sourceData.type
+    });
+    
+    return c.json({
+      success: true,
+      message: `TI source '${sourceData.name}' created successfully`,
+      data: { id: result.meta?.last_row_id, ...sourceData }
+    });
+  } catch (error) {
+    console.error('Error creating TI source:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to create TI source',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Update TI Source Status
+apiThreatIntelRoutes.patch('/sources/:sourceId/status', requirePermission('threat_intel:manage'), async (c) => {
+  try {
+    const { DB } = c.env as { DB: D1Database };
+    const sourceId = parseInt(c.req.param('sourceId'));
+    const { status } = await c.req.json();
+    const userEmail = getCookie(c, 'user_email') || '';
+    
+    const validStatuses = ['active', 'inactive', 'error'];
+    if (!validStatuses.includes(status)) {
+      return c.json({ 
+        success: false, 
+        error: 'Invalid status. Must be one of: ' + validStatuses.join(', ')
+      }, 400);
+    }
+    
+    await DB.prepare(`
+      UPDATE ti_sources 
+      SET status = ?, last_updated = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).bind(status, sourceId).run();
+    
+    console.log(`TI source status updated by ${userEmail}:`, {
+      source_id: sourceId,
+      new_status: status
+    });
+    
+    return c.json({
+      success: true,
+      message: `TI source status updated to ${status}`
+    });
+  } catch (error) {
+    console.error('Error updating TI source status:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to update TI source status',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Get TI Indicators
+apiThreatIntelRoutes.get('/indicators', requirePermission('threat_intel:view'), async (c) => {
+  try {
+    const { DB } = c.env as { DB: D1Database };
+    const limit = parseInt(c.req.query('limit') || '50');
+    const offset = parseInt(c.req.query('offset') || '0');
+    const sourceId = c.req.query('source_id');
+    const indicatorType = c.req.query('indicator_type');
+    const severity = c.req.query('severity');
+    
+    let query = `
+      SELECT 
+        ti.id, ti.source_id, ti.indicator_type, ti.identifier, ti.title, 
+        ti.description, ti.severity, ti.cvss_score, ti.epss_score,
+        ti.exploit_available, ti.exploit_maturity, ti.affected_products,
+        ti.mitigation_available, ti.mitigation_details, ti.first_seen,
+        ti.last_updated, ti.metadata, ti.created_at,
+        ts.name as source_name, ts.type as source_type
+      FROM ti_indicators ti
+      JOIN ti_sources ts ON ti.source_id = ts.id
+      WHERE 1=1
+    `;
+    
+    const params: any[] = [];
+    
+    if (sourceId) {
+      query += ' AND ti.source_id = ?';
+      params.push(parseInt(sourceId));
+    }
+    
+    if (indicatorType) {
+      query += ' AND ti.indicator_type = ?';
+      params.push(indicatorType);
+    }
+    
+    if (severity) {
+      query += ' AND ti.severity = ?';
+      params.push(severity);
+    }
+    
+    query += ' ORDER BY ti.last_updated DESC, ti.created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+    
+    const indicators = await DB.prepare(query).bind(...params).all();
+    
+    return c.json({
+      success: true,
+      data: indicators.results || [],
+      pagination: {
+        limit,
+        offset,
+        total: indicators.results?.length || 0
+      }
+    });
+  } catch (error) {
+    console.error('Error getting TI indicators:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to get TI indicators',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Get TI Indicator by ID
+apiThreatIntelRoutes.get('/indicators/:indicatorId', requirePermission('threat_intel:view'), async (c) => {
+  try {
+    const { DB } = c.env as { DB: D1Database };
+    const indicatorId = parseInt(c.req.param('indicatorId'));
+    
+    const indicator = await DB.prepare(`
+      SELECT 
+        ti.*, ts.name as source_name, ts.type as source_type,
+        ts.url as source_url
+      FROM ti_indicators ti
+      JOIN ti_sources ts ON ti.source_id = ts.id
+      WHERE ti.id = ?
+    `).bind(indicatorId).first();
+    
+    if (!indicator) {
+      return c.json({ 
+        success: false, 
+        error: 'TI indicator not found' 
+      }, 404);
+    }
+    
+    // Get related risk mappings
+    const riskMappings = await DB.prepare(`
+      SELECT 
+        rtm.*, r.title as risk_title, r.status as risk_status,
+        r.likelihood, r.impact, r.risk_score
+      FROM risk_ti_mappings rtm
+      JOIN risks r ON rtm.risk_id = r.id
+      WHERE rtm.ti_indicator_id = ?
+      ORDER BY rtm.relevance_score DESC
+    `).bind(indicatorId).all();
+    
+    return c.json({
+      success: true,
+      data: {
+        indicator,
+        related_risks: riskMappings.results || []
+      }
+    });
+  } catch (error) {
+    console.error('Error getting TI indicator:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to get TI indicator',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Trigger TI Data Ingestion - Full Ingestion
+apiThreatIntelRoutes.post('/ingestion/full', requirePermission('threat_intel:manage'), async (c) => {
+  try {
+    const tiIngestionService = initializeTIIngestionService(c);
+    const userEmail = getCookie(c, 'user_email') || '';
+    
+    // Initialize the service
+    await tiIngestionService.initialize();
+    
+    // Trigger full ingestion
+    const job = await tiIngestionService.ingestFromAllSources();
+    
+    console.log(`Full TI ingestion triggered by ${userEmail}:`, {
+      job_id: job.id,
+      job_status: job.status
+    });
+    
+    return c.json({
+      success: true,
+      message: 'Full TI ingestion started',
+      data: job
+    });
+  } catch (error) {
+    console.error('Error triggering full TI ingestion:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to trigger full TI ingestion',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Trigger TI Data Ingestion - Source Specific
+apiThreatIntelRoutes.post('/ingestion/source/:sourceId', requirePermission('threat_intel:manage'), async (c) => {
+  try {
+    const tiIngestionService = initializeTIIngestionService(c);
+    const sourceId = parseInt(c.req.param('sourceId'));
+    const userEmail = getCookie(c, 'user_email') || '';
+    
+    // Initialize the service
+    await tiIngestionService.initialize();
+    
+    // Trigger source-specific ingestion
+    const job = await tiIngestionService.ingestFromSource(sourceId);
+    
+    console.log(`TI ingestion for source ${sourceId} triggered by ${userEmail}:`, {
+      job_id: job.id,
+      job_status: job.status
+    });
+    
+    return c.json({
+      success: true,
+      message: `TI ingestion for source ${sourceId} started`,
+      data: job
+    });
+  } catch (error) {
+    console.error('Error triggering source-specific TI ingestion:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to trigger source-specific TI ingestion',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Get Ingestion Job Status
+apiThreatIntelRoutes.get('/ingestion/jobs/:jobId', requirePermission('threat_intel:view'), async (c) => {
+  try {
+    const tiIngestionService = initializeTIIngestionService(c);
+    const jobId = c.req.param('jobId');
+    
+    const job = tiIngestionService.getJobStatus(jobId);
+    
+    if (!job) {
+      return c.json({ 
+        success: false, 
+        error: 'Ingestion job not found' 
+      }, 404);
+    }
+    
+    return c.json({
+      success: true,
+      data: job
+    });
+  } catch (error) {
+    console.error('Error getting ingestion job status:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to get ingestion job status',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Get Active Ingestion Jobs
+apiThreatIntelRoutes.get('/ingestion/jobs', requirePermission('threat_intel:view'), async (c) => {
+  try {
+    const tiIngestionService = initializeTIIngestionService(c);
+    
+    const jobs = tiIngestionService.getActiveJobs();
+    
+    return c.json({
+      success: true,
+      data: jobs,
+      total: jobs.length
+    });
+  } catch (error) {
+    console.error('Error getting active ingestion jobs:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to get active ingestion jobs',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Get TI Ingestion Statistics
+apiThreatIntelRoutes.get('/ingestion/stats', requirePermission('threat_intel:view'), async (c) => {
+  try {
+    const tiIngestionService = initializeTIIngestionService(c);
+    
+    // Initialize the service to get orchestrator status
+    await tiIngestionService.initialize();
+    
+    const stats = await tiIngestionService.getIngestionStats();
+    
+    return c.json({
+      success: true,
+      data: stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting TI ingestion statistics:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to get TI ingestion statistics',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Enrich Risks with TI Data
+apiThreatIntelRoutes.post('/enrichment/risks', requirePermission('threat_intel:manage'), async (c) => {
+  try {
+    const tiIngestionService = initializeTIIngestionService(c);
+    const userEmail = getCookie(c, 'user_email') || '';
+    
+    // Initialize the service
+    await tiIngestionService.initialize();
+    
+    // Trigger risk enrichment
+    await tiIngestionService.enrichExistingRisks();
+    
+    console.log(`TI risk enrichment triggered by ${userEmail}`);
+    
+    return c.json({
+      success: true,
+      message: 'TI risk enrichment completed successfully'
+    });
+  } catch (error) {
+    console.error('Error triggering TI risk enrichment:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to trigger TI risk enrichment',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Get Risk-TI Mappings
+apiThreatIntelRoutes.get('/risk-mappings', requirePermission('threat_intel:view'), async (c) => {
+  try {
+    const { DB } = c.env as { DB: D1Database };
+    const riskId = c.req.query('risk_id');
+    const indicatorId = c.req.query('indicator_id');
+    const limit = parseInt(c.req.query('limit') || '50');
+    const offset = parseInt(c.req.query('offset') || '0');
+    
+    let query = `
+      SELECT 
+        rtm.id, rtm.risk_id, rtm.ti_indicator_id, rtm.relevance_score, 
+        rtm.mapping_reason, rtm.created_at,
+        r.title as risk_title, r.category as risk_category, r.status as risk_status,
+        ti.identifier as indicator_identifier, ti.title as indicator_title, 
+        ti.severity as indicator_severity, ts.name as source_name
+      FROM risk_ti_mappings rtm
+      JOIN risks r ON rtm.risk_id = r.id
+      JOIN ti_indicators ti ON rtm.ti_indicator_id = ti.id
+      JOIN ti_sources ts ON ti.source_id = ts.id
+      WHERE 1=1
+    `;
+    
+    const params: any[] = [];
+    
+    if (riskId) {
+      query += ' AND rtm.risk_id = ?';
+      params.push(parseInt(riskId));
+    }
+    
+    if (indicatorId) {
+      query += ' AND rtm.ti_indicator_id = ?';
+      params.push(parseInt(indicatorId));
+    }
+    
+    query += ' ORDER BY rtm.relevance_score DESC, rtm.created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+    
+    const mappings = await DB.prepare(query).bind(...params).all();
+    
+    return c.json({
+      success: true,
+      data: mappings.results || [],
+      pagination: {
+        limit,
+        offset,
+        total: mappings.results?.length || 0
+      }
+    });
+  } catch (error) {
+    console.error('Error getting risk-TI mappings:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to get risk-TI mappings',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
