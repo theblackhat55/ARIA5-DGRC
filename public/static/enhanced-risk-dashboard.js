@@ -154,17 +154,17 @@ class EnhancedRiskDashboard {
             const servicesResponse = await fetch('/api/services?status=active&limit=20');
             const servicesData = await servicesResponse.json();
             
-            if (!servicesData.services) {
+            if (!servicesData.data || !servicesData.data.services) {
                 throw new Error('No services data received');
             }
             
             // Get enhanced indices for all services
-            const serviceIds = servicesData.services.map(s => s.id).join(',');
+            const serviceIds = servicesData.data.services.map(s => s.id).join(',');
             const indicesResponse = await fetch(`/api/enhanced-risk-engine/service-indices/bulk?service_ids=${serviceIds}`);
             const indicesData = await indicesResponse.json();
             
             // Combine services with their indices
-            const servicesWithIndices = servicesData.services.map(service => {
+            const servicesWithIndices = servicesData.data.services.map(service => {
                 const indicesResult = indicesData.results?.find(r => r.service_id === service.id);
                 return {
                     ...service,
