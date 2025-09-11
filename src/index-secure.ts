@@ -544,6 +544,19 @@ app.get('/phase1-demo', async (c) => {
 // Dashboard (requires authentication)
 app.route('/dashboard', createCleanDashboardRoutes());
 
+// Dynamic Risk Analysis Dashboard (requires authentication)
+app.get('/dynamic-risk-analysis', authMiddleware, async (c) => {
+  const { createDynamicRiskDashboard } = await import('./templates/dynamic-risk-dashboard');
+  
+  return c.html(
+    cleanLayout({
+      title: 'Dynamic Risk Analysis - ARIA5.1',
+      user: c.get('user'),
+      content: createDynamicRiskDashboard()
+    })
+  );
+});
+
 // Phase 1 Dynamic Risk Intelligence Dashboard (integrated)
 app.route('/phase1', createPhase1DashboardRoutes());
 

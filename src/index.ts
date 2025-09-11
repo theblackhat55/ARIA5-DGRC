@@ -3,6 +3,9 @@ import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import phase1Api from './routes/phase1-api'
 import enhancedRiskEngineApi from './routes/enhanced-risk-engine-api'
+import dynamicRiskAnalysisApi from './routes/api-dynamic-risk-analysis'
+import dynamicRiskDashboardRoutes from './routes/dynamic-risk-dashboard-routes'
+import dynamicRiskAnalysisApi from './routes/api-dynamic-risk-analysis'
 
 type Bindings = {
   DB: D1Database;
@@ -23,6 +26,15 @@ app.route('/api', phase1Api)
 // Mount Enhanced Risk Engine API routes
 app.route('/api/enhanced-risk-engine', enhancedRiskEngineApi)
 app.route('/api/v2/risk-engine', enhancedRiskEngineApi) // Alternative path
+
+// Mount Dynamic Risk Analysis API routes
+app.route('/api/dynamic-risk-analysis', dynamicRiskAnalysisApi)
+
+// Mount Dynamic Risk Dashboard UI routes
+app.route('/dynamic-risk', dynamicRiskDashboardRoutes)
+
+// Mount Dynamic Risk Analysis API routes
+app.route('/api/dynamic-risk-analysis', dynamicRiskAnalysisApi)
 
 // Default route - Dynamic Risk Intelligence Platform Dashboard
 app.get('/', (c) => {

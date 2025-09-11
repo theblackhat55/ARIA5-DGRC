@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { ThreatIntelligenceService } from '../services/threat-intelligence';
 import { EnhancedThreatIntelligenceService } from '../services/enhanced-threat-intelligence';
+import { EnhancedDynamicRiskManager, SecurityTrigger, OperationalTrigger, ComplianceTrigger, StrategicTrigger } from '../services/enhanced-dynamic-risk-manager';
 
 const apiThreatIntelRoutes = new Hono();
 
@@ -13,6 +14,16 @@ apiThreatIntelRoutes.use('*', requireAuth);
 // Initialize services
 const threatIntelService = new ThreatIntelligenceService();
 const enhancedThreatIntelService = new EnhancedThreatIntelligenceService();
+
+// Dynamic Risk Manager (initialized with DB binding from route context)
+const initializeDynamicRiskManager = (c: any) => {
+  const db = c.env?.DB;
+  const aiBinding = c.env?.AI;
+  if (!db) {
+    throw new Error('Database binding not available');
+  }
+  return new EnhancedDynamicRiskManager(db, aiBinding);
+};
 
 // Threat Intelligence Overview API
 apiThreatIntelRoutes.get('/overview', requirePermission('threat_intel:view'), async (c) => {
@@ -644,208 +655,287 @@ apiThreatIntelRoutes.get('/risk-summary', requirePermission('threat_intel:view')
 });
 
 // ========================================
-// PHASE 1: TI-GRC INTEGRATION ENDPOINTS
+// ENHANCED DYNAMIC RISK ANALYSIS API ENDPOINTS
+// Leveraging existing EnhancedDynamicRiskManager service
 // ========================================
 
-// TI Risk Processing API - Core TI-GRC Integration
-apiThreatIntelRoutes.post('/process-risks', requirePermission('threat_intel:manage'), async (c) => {
+// Process Security Triggers (Microsoft Defender, KEV CVEs, Multi-stage Attacks)
+apiThreatIntelRoutes.post('/dynamic-risks/security-trigger', requirePermission('threat_intel:manage'), async (c) => {
   try {
+    const dynamicRiskManager = initializeDynamicRiskManager(c);
     const userEmail = getCookie(c, 'user_email') || '';
-    const options = await c.req.json().catch(() => ({}));
+    const securityData: SecurityTrigger = await c.req.json();
     
-    const result = await enhancedThreatIntelService.processIOCsForRiskCreation(options);
+    // Validate required fields for security trigger
+    if (!securityData.type || !securityData.severity_score || !securityData.affected_services) {
+      return c.json({ error: 'Missing required fields: type, severity_score, affected_services' }, 400);
+    }
     
-    // Log the processing activity
-    console.log(`TI Risk Processing initiated by ${userEmail}:`, {
-      processed_iocs: result.processed_iocs,
-      risks_created: result.risks_created,
-      processing_time: result.processing_time_ms
+    // Process security trigger through existing enhanced risk manager
+    const enhancedTrigger = await dynamicRiskManager.processSecurityTrigger(securityData);
+    const result = await dynamicRiskManager.createDynamicRiskFromTrigger(enhancedTrigger);
+    
+    console.log(`Security trigger processed by ${userEmail}:`, {
+      trigger_type: securityData.type,
+      severity_score: securityData.severity_score,
+      confidence: enhancedTrigger.confidence,
+      result_action: result.action,
+      risk_id: result.risk_id
     });
     
-    return c.json(result);
+    return c.json({
+      success: true,
+      message: `Security trigger processed: ${result.action}`,
+      data: {
+        trigger_category: 'security',
+        trigger_type: securityData.type,
+        confidence: enhancedTrigger.confidence,
+        urgency: enhancedTrigger.urgency,
+        ...result
+      }
+    });
   } catch (error) {
-    console.error('Error in TI risk processing:', error);
+    console.error('Error processing security trigger:', error);
     return c.json({ 
-      error: 'Failed to process IOCs for risk creation',
+      success: false, 
+      error: 'Failed to process security trigger',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
 
-// Dynamic Risks API - Get TI-created risks with enhanced filtering
-apiThreatIntelRoutes.get('/dynamic-risks', requirePermission('threat_intel:view'), async (c) => {
+// Process Operational Triggers (ServiceNow, Change Failures, Capacity Issues)
+apiThreatIntelRoutes.post('/dynamic-risks/operational-trigger', requirePermission('threat_intel:manage'), async (c) => {
   try {
-    const state = c.req.query('state'); // detected, draft, validated, active, retired
-    const limit = parseInt(c.req.query('limit') || '50');
-    const offset = parseInt(c.req.query('offset') || '0');
-    const confidenceThreshold = parseFloat(c.req.query('confidence_threshold') || '0');
+    const dynamicRiskManager = initializeDynamicRiskManager(c);
+    const userEmail = getCookie(c, 'user_email') || '';
+    const operationalData: OperationalTrigger = await c.req.json();
     
-    const filters = {
-      state,
-      limit,
-      offset,
-      confidenceThreshold
-    };
+    // Validate required fields for operational trigger
+    if (!operationalData.type || !operationalData.service_id || !operationalData.impact_scope) {
+      return c.json({ error: 'Missing required fields: type, service_id, impact_scope' }, 400);
+    }
     
-    const result = await enhancedThreatIntelService.getTIDynamicRisks(filters);
-    return c.json(result);
-  } catch (error) {
-    console.error('Error getting dynamic risks:', error);
-    return c.json({ error: 'Failed to get dynamic risks' }, 500);
-  }
-});
-
-// TI Pipeline Statistics API - Monitoring and analytics
-apiThreatIntelRoutes.get('/pipeline-stats', requirePermission('threat_intel:view'), async (c) => {
-  try {
-    const days = parseInt(c.req.query('days') || '7');
-    const includeDetails = c.req.query('details') === 'true';
+    // Process operational trigger through existing enhanced risk manager
+    const enhancedTrigger = await dynamicRiskManager.processOperationalTrigger(operationalData);
+    const result = await dynamicRiskManager.createDynamicRiskFromTrigger(enhancedTrigger);
     
-    const stats = await enhancedThreatIntelService.getTIPipelineStats({
-      timeframe_days: days,
-      include_breakdown: includeDetails
+    console.log(`Operational trigger processed by ${userEmail}:`, {
+      trigger_type: operationalData.type,
+      service_id: operationalData.service_id,
+      business_impact_hours: operationalData.business_impact_hours,
+      confidence: enhancedTrigger.confidence,
+      result_action: result.action,
+      risk_id: result.risk_id
     });
     
-    return c.json(stats);
-  } catch (error) {
-    console.error('Error getting TI pipeline stats:', error);
-    return c.json({ error: 'Failed to get TI pipeline statistics' }, 500);
-  }
-});
-
-// Risk Creation Rules Management API
-apiThreatIntelRoutes.get('/risk-creation-rules', requirePermission('threat_intel:view'), async (c) => {
-  try {
-    const rules = await enhancedThreatIntelService.getRiskCreationRules();
-    return c.json(rules);
-  } catch (error) {
-    console.error('Error getting risk creation rules:', error);
-    return c.json({ error: 'Failed to get risk creation rules' }, 500);
-  }
-});
-
-apiThreatIntelRoutes.post('/risk-creation-rules', requirePermission('threat_intel:manage'), async (c) => {
-  try {
-    const ruleData = await c.req.json();
-    const userEmail = getCookie(c, 'user_email') || '';
-    
-    // Validate required fields
-    const requiredFields = ['rule_name', 'conditions', 'confidence_threshold', 'target_category'];
-    for (const field of requiredFields) {
-      if (!ruleData[field]) {
-        return c.json({ error: `Missing required field: ${field}` }, 400);
+    return c.json({
+      success: true,
+      message: `Operational trigger processed: ${result.action}`,
+      data: {
+        trigger_category: 'operational',
+        trigger_type: operationalData.type,
+        confidence: enhancedTrigger.confidence,
+        urgency: enhancedTrigger.urgency,
+        ...result
       }
+    });
+  } catch (error) {
+    console.error('Error processing operational trigger:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to process operational trigger',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Process Compliance Triggers (MFA Coverage, Audit Findings, Control Gaps)
+apiThreatIntelRoutes.post('/dynamic-risks/compliance-trigger', requirePermission('threat_intel:manage'), async (c) => {
+  try {
+    const dynamicRiskManager = initializeDynamicRiskManager(c);
+    const userEmail = getCookie(c, 'user_email') || '';
+    const complianceData: ComplianceTrigger = await c.req.json();
+    
+    // Validate required fields for compliance trigger
+    if (!complianceData.type || !complianceData.control_framework || !complianceData.service_ids) {
+      return c.json({ error: 'Missing required fields: type, control_framework, service_ids' }, 400);
     }
     
-    const rule = await enhancedThreatIntelService.createRiskCreationRule(ruleData, userEmail);
-    return c.json(rule);
-  } catch (error) {
-    console.error('Error creating risk creation rule:', error);
-    return c.json({ error: 'Failed to create risk creation rule' }, 500);
-  }
-});
-
-apiThreatIntelRoutes.patch('/risk-creation-rules/:id', requirePermission('threat_intel:manage'), async (c) => {
-  try {
-    const ruleId = c.req.param('id');
-    const updates = await c.req.json();
-    const userEmail = getCookie(c, 'user_email') || '';
+    // Process compliance trigger through existing enhanced risk manager
+    const enhancedTrigger = await dynamicRiskManager.processComplianceTrigger(complianceData);
+    const result = await dynamicRiskManager.createDynamicRiskFromTrigger(enhancedTrigger);
     
-    const rule = await enhancedThreatIntelService.updateRiskCreationRule(ruleId, updates, userEmail);
-    return c.json(rule);
-  } catch (error) {
-    console.error('Error updating risk creation rule:', error);
-    return c.json({ error: 'Failed to update risk creation rule' }, 500);
-  }
-});
-
-// Risk State Management API - Dynamic risk lifecycle
-apiThreatIntelRoutes.patch('/dynamic-risks/:id/state', requirePermission('risk:manage'), async (c) => {
-  try {
-    const riskId = c.req.param('id');
-    const { new_state, reason } = await c.req.json();
-    const userEmail = getCookie(c, 'user_email') || '';
-    
-    // Validate state transition
-    const validStates = ['detected', 'draft', 'validated', 'active', 'retired'];
-    if (!validStates.includes(new_state)) {
-      return c.json({ error: 'Invalid risk state' }, 400);
-    }
-    
-    const result = await enhancedThreatIntelService.updateRiskState(riskId, new_state, reason, userEmail);
-    return c.json(result);
-  } catch (error) {
-    console.error('Error updating risk state:', error);
-    return c.json({ error: 'Failed to update risk state' }, 500);
-  }
-});
-
-// IOC-Risk Linkage API - View IOC to risk relationships
-apiThreatIntelRoutes.get('/iocs/:id/risks', requirePermission('threat_intel:view'), async (c) => {
-  try {
-    const iocId = c.req.param('id');
-    const risks = await enhancedThreatIntelService.getIOCLinkedRisks(iocId);
-    return c.json(risks);
-  } catch (error) {
-    console.error('Error getting IOC linked risks:', error);
-    return c.json({ error: 'Failed to get IOC linked risks' }, 500);
-  }
-});
-
-// TI Processing Logs API - Audit and troubleshooting
-apiThreatIntelRoutes.get('/processing-logs', requirePermission('threat_intel:view'), async (c) => {
-  try {
-    const limit = parseInt(c.req.query('limit') || '100');
-    const logLevel = c.req.query('level'); // info, warning, error
-    const since = c.req.query('since'); // ISO datetime
-    
-    const filters = {
-      limit,
-      log_level: logLevel,
-      since_timestamp: since
-    };
-    
-    const logs = await enhancedThreatIntelService.getTIProcessingLogs(filters);
-    return c.json(logs);
-  } catch (error) {
-    console.error('Error getting TI processing logs:', error);
-    return c.json({ error: 'Failed to get TI processing logs' }, 500);
-  }
-});
-
-// Batch IOC Risk Processing API - For handling multiple IOCs
-apiThreatIntelRoutes.post('/batch-process-risks', requirePermission('threat_intel:manage'), async (c) => {
-  try {
-    const { ioc_ids, processing_options = {} } = await c.req.json();
-    const userEmail = getCookie(c, 'user_email') || '';
-    
-    if (!Array.isArray(ioc_ids) || ioc_ids.length === 0) {
-      return c.json({ error: 'Missing or empty ioc_ids array' }, 400);
-    }
-    
-    const result = await enhancedThreatIntelService.batchProcessIOCsForRisks(ioc_ids, processing_options);
-    
-    console.log(`Batch TI Risk Processing by ${userEmail}:`, {
-      input_iocs: ioc_ids.length,
-      processed_iocs: result.processed_iocs,
-      risks_created: result.risks_created
+    console.log(`Compliance trigger processed by ${userEmail}:`, {
+      trigger_type: complianceData.type,
+      control_framework: complianceData.control_framework,
+      compliance_gap_percent: complianceData.compliance_gap_percent,
+      confidence: enhancedTrigger.confidence,
+      result_action: result.action,
+      risk_id: result.risk_id
     });
     
-    return c.json(result);
+    return c.json({
+      success: true,
+      message: `Compliance trigger processed: ${result.action}`,
+      data: {
+        trigger_category: 'compliance',
+        trigger_type: complianceData.type,
+        confidence: enhancedTrigger.confidence,
+        urgency: enhancedTrigger.urgency,
+        ...result
+      }
+    });
   } catch (error) {
-    console.error('Error in batch TI risk processing:', error);
-    return c.json({ error: 'Failed to batch process IOCs for risks' }, 500);
+    console.error('Error processing compliance trigger:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to process compliance trigger',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 });
 
-// TI Enhancement Status API - Monitor Phase 1 implementation status
-apiThreatIntelRoutes.get('/enhancement-status', requirePermission('threat_intel:view'), async (c) => {
+// Process Strategic Triggers (Vendor Breaches, Regulatory Mandates, Geopolitical Events)
+apiThreatIntelRoutes.post('/dynamic-risks/strategic-trigger', requirePermission('threat_intel:manage'), async (c) => {
   try {
-    const status = await enhancedThreatIntelService.getTIEnhancementStatus();
-    return c.json(status);
+    const dynamicRiskManager = initializeDynamicRiskManager(c);
+    const userEmail = getCookie(c, 'user_email') || '';
+    const strategicData: StrategicTrigger = await c.req.json();
+    
+    // Validate required fields for strategic trigger
+    if (!strategicData.type || typeof strategicData.business_impact_estimate !== 'number' || !strategicData.timeline_days) {
+      return c.json({ error: 'Missing required fields: type, business_impact_estimate (number), timeline_days' }, 400);
+    }
+    
+    // Process strategic trigger through existing enhanced risk manager
+    const enhancedTrigger = await dynamicRiskManager.processStrategicTrigger(strategicData);
+    const result = await dynamicRiskManager.createDynamicRiskFromTrigger(enhancedTrigger);
+    
+    console.log(`Strategic trigger processed by ${userEmail}:`, {
+      trigger_type: strategicData.type,
+      business_impact_estimate: strategicData.business_impact_estimate,
+      timeline_days: strategicData.timeline_days,
+      confidence: enhancedTrigger.confidence,
+      result_action: result.action,
+      risk_id: result.risk_id
+    });
+    
+    return c.json({
+      success: true,
+      message: `Strategic trigger processed: ${result.action}`,
+      data: {
+        trigger_category: 'strategic',
+        trigger_type: strategicData.type,
+        confidence: enhancedTrigger.confidence,
+        urgency: enhancedTrigger.urgency,
+        ...result
+      }
+    });
   } catch (error) {
-    console.error('Error getting TI enhancement status:', error);
-    return c.json({ error: 'Failed to get TI enhancement status' }, 500);
+    console.error('Error processing strategic trigger:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to process strategic trigger',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Get Enhanced Dynamic Risk Summary with Multi-Category Analysis
+apiThreatIntelRoutes.get('/dynamic-risks/enhanced-summary', requirePermission('threat_intel:view'), async (c) => {
+  try {
+    const dynamicRiskManager = initializeDynamicRiskManager(c);
+    const days = parseInt(c.req.query('days') || '30');
+    const category = c.req.query('category'); // security, operational, compliance, strategic, or 'all'
+    
+    // Get comprehensive summary across all risk categories
+    const summary = await dynamicRiskManager.getEnhancedRiskSummary(days, category);
+    
+    return c.json({
+      success: true,
+      data: summary,
+      period: {
+        days: days,
+        category: category || 'all',
+        generated_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error getting enhanced dynamic risk summary:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to get enhanced dynamic risk summary',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Get Service-Centric Risk Analysis
+apiThreatIntelRoutes.get('/dynamic-risks/service-analysis/:serviceId', requirePermission('threat_intel:view'), async (c) => {
+  try {
+    const dynamicRiskManager = initializeDynamicRiskManager(c);
+    const serviceId = parseInt(c.req.param('serviceId'));
+    const days = parseInt(c.req.query('days') || '30');
+    
+    if (isNaN(serviceId)) {
+      return c.json({ error: 'Invalid service ID' }, 400);
+    }
+    
+    // Get service-specific risk analysis across all trigger categories
+    const analysis = await dynamicRiskManager.getServiceRiskAnalysis(serviceId, days);
+    
+    return c.json({
+      success: true,
+      data: analysis,
+      service_id: serviceId,
+      period: {
+        days: days,
+        generated_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error getting service risk analysis:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to get service risk analysis',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Real-time Risk Correlation Engine
+apiThreatIntelRoutes.post('/dynamic-risks/correlate', requirePermission('threat_intel:manage'), async (c) => {
+  try {
+    const dynamicRiskManager = initializeDynamicRiskManager(c);
+    const userEmail = getCookie(c, 'user_email') || '';
+    const { risk_ids, correlation_depth = 'standard' } = await c.req.json();
+    
+    if (!Array.isArray(risk_ids) || risk_ids.length === 0) {
+      return c.json({ error: 'Missing or empty risk_ids array' }, 400);
+    }
+    
+    // Perform real-time correlation analysis
+    const correlationResults = await dynamicRiskManager.performRiskCorrelation(risk_ids, correlation_depth);
+    
+    console.log(`Risk correlation initiated by ${userEmail}:`, {
+      input_risks: risk_ids.length,
+      correlations_found: correlationResults.correlations_found,
+      correlation_depth: correlation_depth
+    });
+    
+    return c.json({
+      success: true,
+      message: `Found ${correlationResults.correlations_found} risk correlations`,
+      data: correlationResults
+    });
+  } catch (error) {
+    console.error('Error performing risk correlation:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Failed to perform risk correlation',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 });
 

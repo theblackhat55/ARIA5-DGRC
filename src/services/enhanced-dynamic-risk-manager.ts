@@ -912,6 +912,100 @@ export class EnhancedDynamicRiskManager {
       console.error('[Enhanced-Dynamic-Risk] Failed to load decision criteria, using defaults');
     }
   }
+
+  /**
+   * Get enhanced risk summary across all categories
+   */
+  async getEnhancedRiskSummary(days: number = 30, category?: string): Promise<any> {
+    const whereCategory = category && category !== 'all' ? 
+      `AND trigger_category = '${category}'` : '';
+    
+    const query = `
+      SELECT 
+        trigger_category,
+        COUNT(*) as total_risks,
+        SUM(CASE WHEN current_state = 'active' THEN 1 ELSE 0 END) as active_risks,
+        AVG(risk_score_composite) as avg_risk_score,
+        AVG(confidence_score) as avg_confidence,
+        COUNT(DISTINCT service_id) as affected_services
+      FROM dynamic_risks 
+      WHERE created_at >= datetime('now', '-${days} days')
+      ${whereCategory}
+      GROUP BY trigger_category
+      ORDER BY total_risks DESC
+    `;
+    
+    const result = await this.db.prepare(query).all();
+    return result.results || [];
+  }
+
+  /**
+   * Get service-specific risk analysis
+   */
+  async getServiceRiskAnalysis(serviceId: number, days: number = 30): Promise<any> {
+    const query = `
+      SELECT 
+        trigger_category,
+        trigger_source,
+        COUNT(*) as risk_count,
+        AVG(risk_score_composite) as avg_risk_score,
+        MAX(risk_score_composite) as max_risk_score,
+        AVG(confidence_score) as avg_confidence,
+        current_state
+      FROM dynamic_risks 
+      WHERE service_id = ? 
+      AND created_at >= datetime('now', '-${days} days')
+      GROUP BY trigger_category, trigger_source, current_state
+      ORDER BY avg_risk_score DESC
+    `;
+    
+    const result = await this.db.prepare(query).bind(serviceId).all();
+    return result.results || [];
+  }
+
+  /**
+   * Perform real-time risk correlation analysis
+   */
+  async performRiskCorrelation(riskIds: number[], correlationDepth: string = 'standard'): Promise<any> {
+    // Basic correlation based on service overlap, time proximity, and trigger similarity
+    const placeholders = riskIds.map(() => '?').join(',');
+    
+    const query = `
+      SELECT 
+        r1.id as risk_1,
+        r2.id as risk_2,
+        r1.trigger_category as category_1,
+        r2.trigger_category as category_2,
+        r1.service_id as service_1,
+        r2.service_id as service_2,
+        ABS(julianday(r1.created_at) - julianday(r2.created_at)) as time_diff_days,
+        CASE 
+          WHEN r1.service_id = r2.service_id THEN 0.8
+          WHEN r1.trigger_category = r2.trigger_category THEN 0.6
+          ELSE 0.3 
+        END as correlation_score
+      FROM dynamic_risks r1
+      CROSS JOIN dynamic_risks r2
+      WHERE r1.id IN (${placeholders})
+      AND r2.id IN (${placeholders})
+      AND r1.id != r2.id
+      AND ABS(julianday(r1.created_at) - julianday(r2.created_at)) <= 7
+      AND (
+        r1.service_id = r2.service_id OR 
+        r1.trigger_category = r2.trigger_category
+      )
+      ORDER BY correlation_score DESC, time_diff_days ASC
+    `;
+    
+    const result = await this.db.prepare(query).bind(...riskIds, ...riskIds).all();
+    
+    return {
+      correlations_found: result.results?.length || 0,
+      correlations: result.results || [],
+      analysis_depth: correlationDepth,
+      analyzed_risks: riskIds.length
+    };
+  }
 }
 
 export default EnhancedDynamicRiskManager;
