@@ -22,6 +22,7 @@ import conversationalAssistantRoutes from './routes/conversational-assistant';
 import { apiThreatIntelRoutes } from './routes/api-threat-intelligence';
 import { tiGrcRoutes } from './routes/api-ti-grc-integration';
 import complianceAutomationApi from './routes/compliance-automation-api';
+import { enhancedRiskEngineApi } from './routes/api-enhanced-risk-engine';
 import { createPhase1DashboardRoutes } from './routes/phase1-dashboard-routes';
 import { createPhase2DashboardRoutes } from './routes/phase2-dashboard-routes';
 import { createPhase3DashboardRoutes } from './routes/phase3-dashboard-routes';
@@ -76,10 +77,10 @@ app.use('*', secureHeaders({
   contentSecurityPolicy: {
     defaultSrc: ["'self'"],
     styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-    scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
+    scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://unpkg.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
     imgSrc: ["'self'", "data:", "https:"],
     fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-    connectSrc: ["'self'"],
+    connectSrc: ["'self'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
     objectSrc: ["'none'"],
     frameSrc: ["'none'"],
     baseUri: ["'self'"]
@@ -945,6 +946,9 @@ app.route('/api/risk-consistency', apiRiskConsistencyRoutes);
 
 // Advanced Compliance Automation API (requires authentication)
 app.route('/api/compliance-automation', complianceAutomationApi);
+
+// Enhanced Risk Engine API (requires authentication)
+app.route('/api/enhanced-risk-engine', enhancedRiskEngineApi);
 
 // PHASE 1 DYNAMIC RISK INTELLIGENCE API (requires authentication)
 import phase1Api from './routes/phase1-api';

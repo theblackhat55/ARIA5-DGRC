@@ -1591,19 +1591,23 @@ const renderCleanNavigation = (user: any) => html`
                     <div class="text-xs text-gray-500">AI-powered control linkage</div>
                   </div>
                 </a>
+                <!-- Dynamic Risk Management Section -->
+                <div class="border-t border-gray-100 my-2"></div>
+                <div class="px-4 py-2">
+                  <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Dynamic Risk Management</div>
+                </div>
                 <a href="/dynamic-risk-analysis" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">
                   <i class="fas fa-chart-network w-5 text-indigo-500 mr-3"></i>
                   <div>
-                    <div class="font-medium">Dynamic Risk Analysis</div>
-                    <div class="text-xs text-gray-500">Real-time cybersecurity & operational</div>
+                    <div class="font-medium">Enhanced Risk Analysis</div>
+                    <div class="text-xs text-gray-500">Multi-trigger cybersecurity & operational</div>
                   </div>
                 </a>
-                <div class="border-t border-gray-100 my-2"></div>
                 <a href="/phase1" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
                   <i class="fas fa-shield-alt w-5 text-blue-600 mr-3"></i>
                   <div>
-                    <div class="font-medium">Dynamic Risk Intelligence</div>
-                    <div class="text-xs text-gray-500">Phase 1 - Service-centric automation</div>
+                    <div class="font-medium">Service-Centric Intelligence</div>
+                    <div class="text-xs text-gray-500">Phase 1 - Asset risk correlation</div>
                   </div>
                 </a>
                 <a href="/phase2" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">

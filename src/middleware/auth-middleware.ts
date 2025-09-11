@@ -12,11 +12,18 @@ function getJWTSecret(env: any): string {
 export async function authMiddleware(c: Context, next: Next) {
   const token = getCookie(c, 'aria_token');
   
-  // Check if this is an HTMX request
+  // Check request type for appropriate response format
   const isHTMXRequest = c.req.header('hx-request') === 'true';
+  const isAPIRequest = c.req.url.includes('/api/');
   
   if (!token) {
-    if (isHTMXRequest) {
+    if (isAPIRequest) {
+      return c.json({
+        success: false,
+        error: 'Authentication required',
+        code: 'AUTH_REQUIRED'
+      }, 401);
+    } else if (isHTMXRequest) {
       // Return error modal for HTMX requests
       return c.html(`
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50">
@@ -60,7 +67,13 @@ export async function authMiddleware(c: Context, next: Next) {
     const payload = await verifyJWT(token, secret);
     
     if (!payload || !payload.id) {
-      if (isHTMXRequest) {
+      if (isAPIRequest) {
+        return c.json({
+          success: false,
+          error: 'Invalid authentication token',
+          code: 'AUTH_INVALID'
+        }, 401);
+      } else if (isHTMXRequest) {
         return c.html(`
           <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50">
             <div class="fixed inset-0 z-50 overflow-y-auto">
@@ -106,7 +119,13 @@ export async function authMiddleware(c: Context, next: Next) {
     `).bind(payload.id).first();
 
     if (!user) {
-      if (isHTMXRequest) {
+      if (isAPIRequest) {
+        return c.json({
+          success: false,
+          error: 'User not found or inactive',
+          code: 'USER_NOT_FOUND'
+        }, 401);
+      } else if (isHTMXRequest) {
         return c.html(`
           <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50">
             <div class="fixed inset-0 z-50 overflow-y-auto">
@@ -150,7 +169,13 @@ export async function authMiddleware(c: Context, next: Next) {
     await next();
   } catch (error) {
     console.error('Auth middleware error:', error);
-    if (isHTMXRequest) {
+    if (isAPIRequest) {
+      return c.json({
+        success: false,
+        error: 'Authentication error',
+        code: 'AUTH_ERROR'
+      }, 500);
+    } else if (isHTMXRequest) {
       return c.html(`
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50">
           <div class="fixed inset-0 z-50 overflow-y-auto">
