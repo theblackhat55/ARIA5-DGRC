@@ -52,6 +52,17 @@ import { cleanLayout } from './templates/layout-clean';
 // AI-NATIVE ENHANCEMENT: Add new AI-powered routes (NON-BREAKING)
 import aiInsightsRoutes from './routes/ai-insights-simple';
 import decisionCenterRoutes from './routes/decision-center-simple';
+
+// AI-NATIVE COMPREHENSIVE UI: New comprehensive AI Insights routes
+import aiInsightsUIRoutes from './routes/ai-insights-routes';
+
+// AI-NATIVE PHASE 4-8: Advanced AI Services (NEW)
+import evidenceCollectionRoutes from './routes/evidence-collection-routes';
+import executiveIntelligenceRoutes from './routes/executive-intelligence-routes';
+import advancedAnalyticsRoutes from './routes/advanced-analytics-routes';
+import enterpriseScaleRoutes from './routes/enterprise-scale-routes';
+import integrationPlatformRoutes from './routes/integration-platform-routes';
+
 import { loginPage } from './templates/auth/login';
 import { landingPage } from './templates/landing';
 
@@ -519,14 +530,52 @@ app.notFound((c) => {
 
 // AI-NATIVE ENHANCEMENT: Add new AI-powered routes (NON-BREAKING ADDITION)
 app.use('/ai-insights/*', authMiddleware);
-app.route('/ai-insights', aiInsightsRoutes);
+app.route('/ai-insights', aiInsightsUIRoutes); // Use comprehensive UI routes
 
 app.use('/decision-center/*', authMiddleware);
 app.route('/decision-center', decisionCenterRoutes);
 
+// AI-NATIVE PHASE 4-8: Advanced AI Services (NEW)
+// Phase 4: Evidence Collection & Learning System
+app.use('/api/evidence/*', authMiddleware);
+app.route('/api/evidence', evidenceCollectionRoutes);
+
+// Phase 5: Executive Intelligence & Reporting  
+app.use('/api/executive/*', authMiddleware);
+app.route('/api/executive', executiveIntelligenceRoutes);
+
+// Phase 6: Advanced Analytics & Mobile Platform
+app.use('/api/analytics/*', authMiddleware);
+app.route('/api/analytics', advancedAnalyticsRoutes);
+
+// Phase 7: Enterprise Scale & Multi-tenancy
+app.use('/api/enterprise/*', authMiddleware);
+app.route('/api/enterprise', enterpriseScaleRoutes);
+
+// Phase 8: Integration Platform & Partner Ecosystem
+app.use('/api/integrations/*', authMiddleware);
+app.route('/api/integrations', integrationPlatformRoutes);
+
 // Legacy route redirects for AI-native consolidation (NON-BREAKING)
 app.get('/analytics', authMiddleware, async (c) => {
   return c.redirect('/ai-insights');
+});
+
+// AI-NATIVE PHASE 4-8: Route redirects for new capabilities
+app.get('/evidence-collection', authMiddleware, async (c) => {
+  return c.redirect('/ai-insights?tab=evidence');
+});
+
+app.get('/executive-intelligence', authMiddleware, async (c) => {
+  return c.redirect('/decision-center?view=executive');
+});
+
+app.get('/enterprise-scale', authMiddleware, async (c) => {
+  return c.redirect('/admin/enterprise');
+});
+
+app.get('/integrations', authMiddleware, async (c) => {
+  return c.redirect('/operations/integrations');
 });
 
 // Missing general routes (to fix 404 errors)

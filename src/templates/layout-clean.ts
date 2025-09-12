@@ -1725,41 +1725,98 @@ const renderCleanNavigation = (user: any) => html`
             </div>
           </div>
           
-          <!-- Advanced Analytics Dropdown -->
+          <!-- AI-Native Platform Dropdown -->
           <div class="relative" data-dropdown>
             <button data-dropdown-button class="flex items-center space-x-1 text-gray-700 hover:text-purple-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              <i class="fas fa-brain mr-1"></i>
-              <span>AI & ML</span>
+              <i class="fas fa-robot mr-1"></i>
+              <span>AI-Native</span>
               <i class="fas fa-chevron-down text-xs"></i>
             </button>
-            <div data-dropdown-menu class="dropdown-menu absolute left-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+            <div data-dropdown-menu class="dropdown-menu absolute left-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
               <div class="py-2">
-                <a href="/intelligence/correlation-engine" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-network-wired w-5 text-green-500 mr-3"></i>
+                <!-- Phase 4: Evidence Collection -->
+                <div class="px-4 py-2 bg-blue-50 border-b border-blue-100">
+                  <div class="text-xs font-semibold text-blue-700 uppercase tracking-wider">Phase 4: Evidence Collection</div>
+                </div>
+                <a href="/ai-insights?tab=evidence" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                  <i class="fas fa-folder-plus w-5 text-blue-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Evidence Collection</div>
+                    <div class="text-xs text-gray-500">Automated compliance evidence gathering</div>
+                  </div>
+                </a>
+                <a href="/ai-insights?tab=audit-packages" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                  <i class="fas fa-clipboard-list w-5 text-green-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Audit Packages</div>
+                    <div class="text-xs text-gray-500">AI-powered audit preparation</div>
+                  </div>
+                </a>
+                
+                <!-- Phase 5: Executive Intelligence -->
+                <div class="px-4 py-2 bg-purple-50 border-b border-purple-100 mt-2">
+                  <div class="text-xs font-semibold text-purple-700 uppercase tracking-wider">Phase 5: Executive Intelligence</div>
+                </div>
+                <a href="/decision-center?view=executive" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
+                  <i class="fas fa-chart-line w-5 text-purple-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Executive Dashboard</div>
+                    <div class="text-xs text-gray-500">C-level insights & strategic reporting</div>
+                  </div>
+                </a>
+                <a href="/decision-center?view=board-reports" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
+                  <i class="fas fa-presentation w-5 text-indigo-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Board Reports</div>
+                    <div class="text-xs text-gray-500">Automated board-ready reports</div>
+                  </div>
+                </a>
+                
+                <!-- Phase 6: Advanced Analytics -->
+                <div class="px-4 py-2 bg-green-50 border-b border-green-100 mt-2">
+                  <div class="text-xs font-semibold text-green-700 uppercase tracking-wider">Phase 6: Advanced Analytics</div>
+                </div>
+                <a href="/ai-insights?tab=predictive" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700">
+                  <i class="fas fa-chart-area w-5 text-green-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Predictive Analytics</div>
+                    <div class="text-xs text-gray-500">ML-powered risk forecasting</div>
+                  </div>
+                </a>
+                <a href="/ai-insights?tab=mobile" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700">
+                  <i class="fas fa-mobile-alt w-5 text-teal-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Mobile Analytics</div>
+                    <div class="text-xs text-gray-500">Mobile-optimized dashboards</div>
+                  </div>
+                </a>
+                
+                <!-- Phase 7 & 8: Enterprise & Integration -->
+                <div class="px-4 py-2 bg-orange-50 border-b border-orange-100 mt-2">
+                  <div class="text-xs font-semibold text-orange-700 uppercase tracking-wider">Enterprise & Integration</div>
+                </div>
+                <a href="/admin/enterprise" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700">
+                  <i class="fas fa-building w-5 text-orange-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Enterprise Scale</div>
+                    <div class="text-xs text-gray-500">Multi-tenant management</div>
+                  </div>
+                </a>
+                <a href="/operations/integrations" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700">
+                  <i class="fas fa-plug w-5 text-red-500 mr-3"></i>
+                  <div>
+                    <div class="font-medium">Integration Platform</div>
+                    <div class="text-xs text-gray-500">300+ connectors & marketplace</div>
+                  </div>
+                </a>
+                
+                <!-- Traditional AI Features -->
+                <div class="border-t border-gray-100 my-2"></div>
+                <a href="/intelligence/correlation-engine" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-700">
+                  <i class="fas fa-network-wired w-5 text-gray-500 mr-3"></i>
                   <div>
                     <div class="font-medium">ML Correlation Engine</div>
                     <div class="text-xs text-gray-500">Threat clustering & attribution</div>
-                  </div>
-                </a>
-                <a href="/intelligence/behavioral-analytics" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-chart-line w-5 text-orange-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Behavioral Analytics</div>
-                    <div class="text-xs text-gray-500">Anomaly detection & profiling</div>
-                  </div>
-                </a>
-                <a href="/intelligence/neural-network" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-project-diagram w-5 text-purple-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Neural Network Analysis</div>
-                    <div class="text-xs text-gray-500">Deep learning behavioral models</div>
-                  </div>
-                </a>
-                <a href="/intelligence/risk-scoring" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-calculator w-5 text-yellow-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Advanced Risk Scoring</div>
-                    <div class="text-xs text-gray-500">ML-optimized threat scoring</div>
                   </div>
                 </a>
               </div>
