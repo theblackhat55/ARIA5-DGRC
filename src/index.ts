@@ -50,8 +50,8 @@ import { apiIncidentResponseRoutes } from './routes/api-incident-response';
 import { cleanLayout } from './templates/layout-clean';
 
 // AI-NATIVE ENHANCEMENT: Add new AI-powered routes (NON-BREAKING)
-import aiInsightsRoutes from './routes/ai-insights-routes';
-import decisionCenterRoutes from './routes/decision-center-routes';
+import aiInsightsRoutes from './routes/ai-insights-simple';
+import decisionCenterRoutes from './routes/decision-center-simple';
 import { loginPage } from './templates/auth/login';
 import { landingPage } from './templates/landing';
 
@@ -66,7 +66,7 @@ app.use('*', cors({
 app.use('*', secureHeaders({
   contentSecurityPolicy: {
     defaultSrc: ["'self'"],
-    styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com"],
+    styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
     scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://unpkg.com"],
     imgSrc: ["'self'", "data:", "https:"],
     fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/"],
