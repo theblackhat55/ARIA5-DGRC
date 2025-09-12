@@ -206,6 +206,11 @@ export function createOperationsRoutes() {
   // API endpoints - now using D1 database
   app.get('/api/assets', async (c) => {
     const assets = await getAssets(c.env.DB);
+    // Check if this is an HTMX request for HTML content
+    const htmxRequest = c.req.header('HX-Request');
+    if (htmxRequest) {
+      return c.html(renderAssetRows(assets));
+    }
     return c.json({ success: true, assets });
   });
 
@@ -802,6 +807,68 @@ export function createOperationsRoutes() {
     return c.html('');
   });
 
+  // Asset edit endpoint
+  app.get('/api/assets/:id/edit', async (c) => {
+    const assetId = c.req.param('id');
+    const asset = await getAssetById(c.env.DB, assetId);
+    if (!asset) {
+      return c.html('<div class="p-4 text-red-600">Asset not found</div>');
+    }
+    return c.html(renderAssetEditModal(asset));
+  });
+
+  // Asset delete confirmation endpoint
+  app.get('/api/assets/:id/delete-confirm', async (c) => {
+    const assetId = c.req.param('id');
+    const asset = await getAssetById(c.env.DB, assetId);
+    if (!asset) {
+      return c.html('<div class="p-4 text-red-600">Asset not found</div>');
+    }
+    return c.html(renderAssetDeleteModal(asset));
+  });
+
+  // Asset update endpoint
+  app.post('/api/assets/:id', async (c) => {
+    try {
+      const assetId = c.req.param('id');
+      const formData = await c.req.formData();
+      
+      const assetData = {
+        name: formData.get('name') as string,
+        description: formData.get('description') as string,
+        asset_type: formData.get('asset_type') as string,
+        criticality: formData.get('criticality') as string,
+        status: formData.get('status') as string,
+        updated_at: new Date().toISOString()
+      };
+      
+      await updateAsset(c.env.DB, assetId, assetData);
+      
+      // Return success response
+      const response = c.html('');
+      return response;
+    } catch (error) {
+      console.error('Error updating asset:', error);
+      return c.html('<div class="p-4 text-red-600">Error updating asset. Please try again.</div>');
+    }
+  });
+
+  // Asset delete endpoint
+  app.delete('/api/assets/:id', async (c) => {
+    try {
+      const assetId = c.req.param('id');
+      
+      await deleteAsset(c.env.DB, assetId);
+      
+      // Return success response
+      const response = c.html('');
+      return response;
+    } catch (error) {
+      console.error('Error deleting asset:', error);
+      return c.json({ error: 'Error deleting asset' }, 500);
+    }
+  });
+
   // Delete service endpoint
   app.delete('/api/services/:id', async (c) => {
     try {
@@ -829,6 +896,84 @@ export function createOperationsRoutes() {
   // Close linking modal endpoint
   app.get('/api/link/close', async (c) => {
     return c.html('');
+  });
+
+  // Asset-related vulnerabilities endpoint
+  app.get('/api/vulnerabilities/by-asset/:assetId', async (c) => {
+    const assetId = c.req.param('assetId');
+    
+    try {
+      // Get asset info
+      const asset = await c.env.DB.prepare(
+        'SELECT name FROM assets WHERE id = ?'
+      ).bind(assetId).first();
+      
+      if (!asset) {
+        return c.html('<div class="p-4 text-red-600">Asset not found</div>');
+      }
+      
+      // Get vulnerabilities - since there's no direct asset_id relation, 
+      // we'll get vulnerabilities that might affect this asset type
+      const vulnerabilities = await c.env.DB.prepare(`
+        SELECT id, name, description, severity, cvss_score, cve_id, 
+               remediation_status, first_discovered, target_remediation_date
+        FROM vulnerabilities 
+        WHERE is_active = TRUE
+        ORDER BY 
+          CASE severity 
+            WHEN 'Critical' THEN 1
+            WHEN 'High' THEN 2  
+            WHEN 'Medium' THEN 3
+            WHEN 'Low' THEN 4
+            ELSE 5
+          END,
+          cvss_score DESC
+        LIMIT 20
+      `).all();
+      
+      return c.html(renderAssetVulnerabilitiesModal(asset, vulnerabilities.results || []));
+    } catch (error) {
+      console.error('Error fetching vulnerabilities:', error);
+      return c.html('<div class="p-4 text-red-600">Error loading vulnerabilities</div>');
+    }
+  });
+
+  // Asset-related incidents endpoint  
+  app.get('/api/incidents/by-asset/:assetId', async (c) => {
+    const assetId = c.req.param('assetId');
+    
+    try {
+      // Get asset info
+      const asset = await c.env.DB.prepare(
+        'SELECT name FROM assets WHERE id = ?'
+      ).bind(assetId).first();
+      
+      if (!asset) {
+        return c.html('<div class="p-4 text-red-600">Asset not found</div>');
+      }
+      
+      // Get recent incidents
+      const incidents = await c.env.DB.prepare(`
+        SELECT id, title, description, severity, status, created_at, updated_at
+        FROM incidents 
+        WHERE organization_id = ? 
+        ORDER BY 
+          CASE severity 
+            WHEN 'critical' THEN 1
+            WHEN 'high' THEN 2
+            WHEN 'medium' THEN 3
+            WHEN 'low' THEN 4
+            ELSE 5
+          END,
+          created_at DESC
+        LIMIT 20
+      `).bind(1).all(); // Using organization_id = 1
+      
+      return c.html(renderAssetIncidentsModal(asset, incidents.results || []));
+    } catch (error) {
+      console.error('Error fetching incidents:', error);
+      return c.html('<div class="p-4 text-red-600">Error loading incidents</div>');
+    }
   });
 
   // R2 Object Storage - File Upload Endpoint
@@ -1801,7 +1946,7 @@ async function getAssets(db: D1Database) {
     const result = await db.prepare(`
       SELECT 
         id, name, description, asset_type, criticality, 
-        location, owner_id, organization_id, status,
+        status, organization_id,
         created_at, updated_at
       FROM assets 
       WHERE status = 'active' 
@@ -2065,34 +2210,77 @@ function renderAssetRows(assets: any[]) {
     `;
   }
   
-  return assets.map(asset => `
-    <tr>
+  return assets.map(asset => {
+    const truncatedDescription = asset.description && asset.description.length > 60 
+      ? asset.description.substring(0, 60) + '...' 
+      : asset.description || 'No description';
+      
+    return `
+    <tr class="hover:bg-gray-50">
       <td class="px-6 py-4 whitespace-nowrap">
         <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <i class="fas fa-server text-blue-600 text-lg mr-3"></i>
+          </div>
           <div>
             <div class="text-sm font-medium text-gray-900">${asset.name}</div>
-            <div class="text-sm text-gray-500">${asset.type || 'Unknown type'}</div>
+            <div class="text-sm text-gray-500">Asset • ID: ${asset.id}</div>
+            <div class="text-xs text-gray-400 mt-1">${truncatedDescription}</div>
           </div>
         </div>
       </td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${asset.type || 'Unknown'}</td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          ${asset.status}
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          ${asset.asset_type || 'Unknown'}
         </span>
       </td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${asset.location || 'Unknown'}</td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          ${asset.status || 'Active'}
+        </span>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+        <div class="flex items-center">
+          <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
+          Data Center
+        </div>
+      </td>
       <td class="px-6 py-4 whitespace-nowrap">
         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRiskColor(asset.criticality)}">
+          <i class="fas fa-shield-alt mr-1"></i>
           ${asset.criticality || 'Medium'}
         </span>
       </td>
       <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-        <button class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-        <button class="text-red-600 hover:text-red-900">Delete</button>
+        <div class="flex flex-col space-y-1">
+          <button class="text-orange-600 hover:text-orange-900 text-left" 
+                  hx-get="/operations/api/vulnerabilities/by-asset/${asset.id}" 
+                  hx-target="#asset-modal" 
+                  hx-swap="innerHTML">
+            <i class="fas fa-bug mr-1"></i>Vulnerabilities
+          </button>
+          <button class="text-red-600 hover:text-red-900 text-left"
+                  hx-get="/operations/api/incidents/by-asset/${asset.id}" 
+                  hx-target="#asset-modal" 
+                  hx-swap="innerHTML">
+            <i class="fas fa-exclamation-triangle mr-1"></i>Incidents
+          </button>
+          <button class="text-blue-600 hover:text-blue-900 text-left"
+                  hx-get="/operations/api/assets/${asset.id}/edit" 
+                  hx-target="#asset-modal" 
+                  hx-swap="innerHTML">
+            <i class="fas fa-edit mr-1"></i>Edit
+          </button>
+          <button class="text-red-600 hover:text-red-900 text-left"
+                  hx-get="/operations/api/assets/${asset.id}/delete-confirm" 
+                  hx-target="#asset-modal" 
+                  hx-swap="innerHTML">
+            <i class="fas fa-trash mr-1"></i>Delete
+          </button>
+        </div>
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 function renderServiceRows(services: any[]) {
@@ -3924,4 +4112,397 @@ const renderDocumentDeleteModal = (document: any) => html`
   </div>
 `;
 
+// Asset Management Helper Functions
+async function getAssetById(db: D1Database, assetId: string) {
+  try {
+    const result = await db.prepare(`
+      SELECT * FROM assets WHERE id = ?
+    `).bind(assetId).first();
+    return result;
+  } catch (error) {
+    console.error('Error fetching asset by ID:', error);
+    return null;
+  }
+}
+
+// Helper function to update asset
+async function updateAsset(db: D1Database, assetId: string, assetData: any) {
+  try {
+    await db.prepare(`
+      UPDATE assets SET 
+        name = ?,
+        description = ?,
+        asset_type = ?,
+        criticality = ?,
+        status = ?,
+        updated_at = ?
+      WHERE id = ?
+    `).bind(
+      assetData.name,
+      assetData.description,
+      assetData.asset_type,
+      assetData.criticality,
+      assetData.status,
+      assetData.updated_at,
+      assetId
+    ).run();
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating asset:', error);
+    throw error;
+  }
+}
+
+// Helper function to delete asset
+async function deleteAsset(db: D1Database, assetId: string) {
+  try {
+    await db.prepare(`
+      DELETE FROM assets WHERE id = ?
+    `).bind(assetId).run();
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting asset:', error);
+    throw error;
+  }
+}
+
+// Asset Vulnerabilities Modal
+const renderAssetVulnerabilitiesModal = (asset: any, vulnerabilities: any[]) => html`
+  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" 
+       hx-target="this" 
+       hx-swap="outerHTML"
+       _="on click from elsewhere halt the event">
+    <div class="relative top-10 mx-auto p-6 border w-full max-w-4xl shadow-xl rounded-lg bg-white">
+      <div class="mt-3">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+              <i class="fas fa-bug text-orange-600 mr-3"></i>
+              Vulnerabilities for ${asset.name}
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">Security vulnerabilities that may affect this asset</p>
+          </div>
+          <button hx-get="/operations/api/assets/close" hx-target="#asset-modal" hx-swap="innerHTML" 
+                  class="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100">
+            <i class="fas fa-times text-lg"></i>
+          </button>
+        </div>
+        
+        <div class="max-h-96 overflow-y-auto">
+          ${raw(vulnerabilities.length > 0 ? 
+            vulnerabilities.map(vuln => `
+              <div class="border border-gray-200 rounded-lg p-4 mb-3 hover:bg-gray-50">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1 mr-4">
+                    <div class="flex items-center space-x-2 mb-2">
+                      <div class="font-medium text-gray-900">${vuln.name}</div>
+                      ${vuln.cve_id ? `<span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">${vuln.cve_id}</span>` : ''}
+                    </div>
+                    ${vuln.description ? `<div class="text-sm text-gray-600 mb-2">${vuln.description.substring(0, 150)}${vuln.description.length > 150 ? '...' : ''}</div>` : ''}
+                    <div class="flex items-center space-x-4 text-xs text-gray-500">
+                      <span><i class="fas fa-calendar mr-1"></i>Discovered: ${new Date(vuln.first_discovered).toLocaleDateString()}</span>
+                      ${vuln.target_remediation_date ? `<span><i class="fas fa-target mr-1"></i>Target Fix: ${new Date(vuln.target_remediation_date).toLocaleDateString()}</span>` : ''}
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="flex flex-col items-end space-y-2">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        vuln.severity === 'Critical' ? 'bg-red-100 text-red-800' :
+                        vuln.severity === 'High' ? 'bg-orange-100 text-orange-800' :
+                        vuln.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }">
+                        ${vuln.severity || 'Unknown'}
+                      </span>
+                      ${vuln.cvss_score ? `<span class="text-xs text-gray-500">CVSS: ${vuln.cvss_score}</span>` : ''}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        vuln.remediation_status === 'Open' ? 'bg-red-100 text-red-800' :
+                        vuln.remediation_status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }">
+                        ${vuln.remediation_status || 'Open'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `).join('') :
+            `<div class="text-center py-8">
+              <i class="fas fa-shield-alt text-green-300 text-3xl mb-2"></i>
+              <p class="text-gray-500">No vulnerabilities found for this asset</p>
+              <p class="text-sm text-gray-400 mt-1">This asset appears to be secure</p>
+            </div>`
+          )}
+        </div>
+        
+        <div class="flex justify-between items-center pt-4 border-t mt-6">
+          <div class="text-sm text-gray-500">
+            <i class="fas fa-info-circle mr-1"></i>
+            Showing ${vulnerabilities.length} vulnerability${vulnerabilities.length !== 1 ? 's' : ''}
+          </div>
+          <button type="button" 
+                  hx-get="/operations/api/assets/close" 
+                  hx-target="#asset-modal" 
+                  hx-swap="innerHTML"
+                  class="px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-md">
+            <i class="fas fa-times mr-2"></i>Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+
+// Asset Incidents Modal
+const renderAssetIncidentsModal = (asset: any, incidents: any[]) => html`
+  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" 
+       hx-target="this" 
+       hx-swap="outerHTML"
+       _="on click from elsewhere halt the event">
+    <div class="relative top-10 mx-auto p-6 border w-full max-w-4xl shadow-xl rounded-lg bg-white">
+      <div class="mt-3">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+              <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
+              Incidents related to ${asset.name}
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">Security incidents that may have affected this asset</p>
+          </div>
+          <button hx-get="/operations/api/assets/close" hx-target="#asset-modal" hx-swap="innerHTML" 
+                  class="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100">
+            <i class="fas fa-times text-lg"></i>
+          </button>
+        </div>
+        
+        <div class="max-h-96 overflow-y-auto">
+          ${raw(incidents.length > 0 ? 
+            incidents.map(incident => `
+              <div class="border border-gray-200 rounded-lg p-4 mb-3 hover:bg-gray-50">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1 mr-4">
+                    <div class="flex items-center space-x-2 mb-2">
+                      <div class="font-medium text-gray-900">${incident.title}</div>
+                      <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">#${incident.id}</span>
+                    </div>
+                    ${incident.description ? `<div class="text-sm text-gray-600 mb-2">${incident.description.substring(0, 150)}${incident.description.length > 150 ? '...' : ''}</div>` : ''}
+                    <div class="flex items-center space-x-4 text-xs text-gray-500">
+                      <span><i class="fas fa-calendar mr-1"></i>Created: ${new Date(incident.created_at).toLocaleDateString()}</span>
+                      <span><i class="fas fa-clock mr-1"></i>Updated: ${new Date(incident.updated_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="flex flex-col items-end space-y-2">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        incident.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                        incident.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                        incident.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }">
+                        ${incident.severity ? incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1) : 'Unknown'}
+                      </span>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        incident.status === 'open' ? 'bg-red-100 text-red-800' :
+                        incident.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' :
+                        incident.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }">
+                        ${incident.status ? incident.status.charAt(0).toUpperCase() + incident.status.slice(1) : 'Unknown'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `).join('') :
+            `<div class="text-center py-8">
+              <i class="fas fa-check-circle text-green-300 text-3xl mb-2"></i>
+              <p class="text-gray-500">No incidents found for this asset</p>
+              <p class="text-sm text-gray-400 mt-1">This asset has not been involved in any security incidents</p>
+            </div>`
+          )}
+        </div>
+        
+        <div class="flex justify-between items-center pt-4 border-t mt-6">
+          <div class="text-sm text-gray-500">
+            <i class="fas fa-info-circle mr-1"></i>
+            Showing ${incidents.length} incident${incidents.length !== 1 ? 's' : ''}
+          </div>
+          <button type="button" 
+                  hx-get="/operations/api/assets/close" 
+                  hx-target="#asset-modal" 
+                  hx-swap="innerHTML"
+                  class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md">
+            <i class="fas fa-times mr-2"></i>Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+
+// Asset Edit Modal
+const renderAssetEditModal = (asset: any) => html`
+  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" 
+       hx-target="this" 
+       hx-swap="outerHTML"
+       _="on click from elsewhere halt the event">
+    <div class="relative top-10 mx-auto p-6 border w-full max-w-2xl shadow-xl rounded-lg bg-white">
+      <div class="mt-3">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+              <i class="fas fa-edit text-blue-600 mr-3"></i>
+              Edit Asset
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">Update asset information and criticality</p>
+          </div>
+          <button hx-get="/operations/api/assets/close" hx-target="#asset-modal" hx-swap="innerHTML" 
+                  class="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100">
+            <i class="fas fa-times text-lg"></i>
+          </button>
+        </div>
+        
+        <form hx-post="/operations/api/assets/${asset.id}" 
+              hx-target="#asset-modal" 
+              hx-swap="innerHTML"
+              hx-on::after-request="if(event.detail.xhr.status === 200) { 
+                document.getElementById('asset-modal').innerHTML = '';
+                htmx.trigger(document.querySelector('tbody'), 'htmx:load');
+              }">
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Asset Name *</label>
+              <input type="text" name="name" value="${asset.name || ''}" required
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Asset Type</label>
+              <select name="asset_type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                <option value="server" ${asset.asset_type === 'server' ? 'selected' : ''}>Server</option>
+                <option value="workstation" ${asset.asset_type === 'workstation' ? 'selected' : ''}>Workstation</option>
+                <option value="network_device" ${asset.asset_type === 'network_device' ? 'selected' : ''}>Network Device</option>
+                <option value="cloud_service" ${asset.asset_type === 'cloud_service' ? 'selected' : ''}>Cloud Service</option>
+                <option value="database" ${asset.asset_type === 'database' ? 'selected' : ''}>Database</option>
+                <option value="application" ${asset.asset_type === 'application' ? 'selected' : ''}>Application</option>
+                <option value="mobile_device" ${asset.asset_type === 'mobile_device' ? 'selected' : ''}>Mobile Device</option>
+                <option value="other" ${asset.asset_type === 'other' ? 'selected' : ''}>Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea name="description" rows="3" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">${asset.description || ''}</textarea>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Criticality</label>
+              <select name="criticality" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                <option value="Low" ${asset.criticality === 'Low' ? 'selected' : ''}>Low</option>
+                <option value="Medium" ${asset.criticality === 'Medium' ? 'selected' : ''}>Medium</option>
+                <option value="High" ${asset.criticality === 'High' ? 'selected' : ''}>High</option>
+                <option value="Critical" ${asset.criticality === 'Critical' ? 'selected' : ''}>Critical</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                <option value="active" ${asset.status === 'active' ? 'selected' : ''}>Active</option>
+                <option value="inactive" ${asset.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                <option value="maintenance" ${asset.status === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+                <option value="decommissioned" ${asset.status === 'decommissioned' ? 'selected' : ''}>Decommissioned</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-8 flex justify-end space-x-3">
+            <button type="button" 
+                    hx-get="/operations/api/assets/close" 
+                    hx-target="#asset-modal" 
+                    hx-swap="innerHTML"
+                    class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50">
+              Cancel
+            </button>
+            <button type="submit" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
+              <i class="fas fa-save mr-2"></i>
+              Update Asset
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+`;
+
+// Asset Delete Confirmation Modal
+const renderAssetDeleteModal = (asset: any) => html`
+  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" 
+       hx-target="this" 
+       hx-swap="outerHTML"
+       _="on click from elsewhere halt the event">
+    <div class="relative top-10 mx-auto p-6 border w-full max-w-lg shadow-xl rounded-lg bg-white">
+      <div class="mt-3">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+              <i class="fas fa-trash text-red-600 mr-3"></i>
+              Delete Asset
+            </h3>
+          </div>
+          <button hx-get="/operations/api/assets/close" hx-target="#asset-modal" hx-swap="innerHTML" 
+                  class="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100">
+            <i class="fas fa-times text-lg"></i>
+          </button>
+        </div>
+        
+        <div class="mb-6">
+          <p class="text-gray-700 mb-4">
+            Are you sure you want to delete the asset <strong>"${asset.name}"</strong>?
+          </p>
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-start">
+              <i class="fas fa-exclamation-triangle text-red-400 mt-0.5 mr-3"></i>
+              <div>
+                <h4 class="text-sm font-medium text-red-800 mb-1">This action cannot be undone</h4>
+                <p class="text-sm text-red-700">
+                  The asset and all its configuration will be permanently removed from the system.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button type="button" 
+                  hx-get="/operations/api/assets/close" 
+                  hx-target="#asset-modal" 
+                  hx-swap="innerHTML"
+                  class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Cancel
+          </button>
+          <button type="button" 
+                  hx-delete="/operations/api/assets/${asset.id}"
+                  hx-target="#asset-modal" 
+                  hx-swap="innerHTML"
+                  hx-on::after-request="if(event.detail.xhr.status === 200) { 
+                    document.getElementById('asset-modal').innerHTML = '';
+                    htmx.trigger(document.querySelector('tbody'), 'htmx:load');
+                  }"
+                  class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center">
+            <i class="fas fa-trash mr-2"></i>
+            Delete Asset
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
 

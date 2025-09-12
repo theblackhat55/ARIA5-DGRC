@@ -1,0 +1,56 @@
+{
+  "timestamp": "2025-09-11T20:00:09.951123",
+  "target": "https://dynamic-risk-intelligence.pages.dev",
+  "500_errors": [
+    {
+      "url": "/phase5",
+      "status_code": 500,
+      "headers": {
+        "Date": "Thu, 11 Sep 2025 20:00:10 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Content-Length": "55960",
+        "Connection": "keep-alive",
+        "Strict-Transport-Security": "max-age=15552000; includeSubDomains",
+        "Vary": "Origin, accept-encoding",
+        "Access-Control-Allow-Credentials": "true",
+        "Content-Security-Policy": "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/; connect-src 'self'",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Resource-Policy": "same-origin",
+        "Origin-Agent-Cluster": "?1",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-DNS-Prefetch-Control": "off",
+        "X-Download-Options": "noopen",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Permitted-Cross-Domain-Policies": "none",
+        "X-XSS-Protection": "0",
+        "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=oGkN704IAUSwEvvm%2Fh2L9b29Tr0SL9KkfoR9qjYm77Obmq4EtgjKdQ696eTkWVaMn0MwXLnEcYYIKq3DUBYYx4pyELorhcRYRm5TUqTMr8Ao0qOlza5%2FFsPOP5mUiHYq7wEV\"}]}",
+        "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "Server": "cloudflare",
+        "CF-RAY": "97d9bfee3f97b9a4-SEA",
+        "alt-svc": "h3=\":443\"; ma=86400"
+      },
+      "content_preview": "\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover\">\n  <title>Error - ARIA5.1</title>\n  \n  <!-- Progressive Web App Meta Tags -->\n  <meta name=\"application-name\" content=\"ARIA5.1 Platform\">\n  <meta name=\"apple-mobile-web-app-capable\" content=\"yes\">\n  <meta name=\"apple-mobile-web-app-status-bar-style\" content=\"default\">\n  <meta name=\"apple-mobile-web-app-title\" content=\"ARIA5.1\">\n  <meta name=\"description\" content=\"AI-powered enterprise risk intelligence and compliance platform\">\n  <meta name=\"format-detection\" content=\"telephone=no\">\n  <meta name=\"mobile-web-app-capable\" content=\"yes\">\n  <meta name=\"msapplication-TileColor\" content=\"#667eea\">\n  <meta name=\"msapplication-tap-highlight\" content=\"no\">\n  <meta name=\"theme-color\" content=\"#667eea\">\n  \n  <!-- PWA Manifest -->\n  <link rel=\"manifest\" href=\"/manifest.json\">\n  \n  <!-- Apple Touch Icons -->\n  <link rel=\"appl",
+      "investigation_time": "2025-09-11T20:00:10.062932"
+    }
+  ],
+  "404_patterns": {
+    "api_endpoints": [
+      "/api/compliance",
+      "/api/services",
+      "/api/threat-intelligence/sources",
+      "/api/threat-intelligence/indicators",
+      "/api/validation/queue",
+      "/api/validation/metrics"
+    ],
+    "ui_pages": [
+      "/dynamic-risk-analysis"
+    ],
+    "missing_features": []
+  },
+  "recommendations": [
+    "\ud83d\udea8 CRITICAL: Fix 500 server errors immediately - these indicate application failures",
+    "\u26a0\ufe0f HIGH: 6 API endpoints return 404 - may indicate incomplete implementation",
+    "\ud83d\udd0d MEDIUM: 1 UI pages return 404 - verify intended functionality"
+  ]
+}

@@ -484,7 +484,9 @@ phase4EvidenceDashboard.get('/', async (c) => {
         </script>
       </body>
       </html>
-    `);
+    `
+      })
+    );
 
   } catch (error) {
     console.error('Phase 4 evidence dashboard error:', error);

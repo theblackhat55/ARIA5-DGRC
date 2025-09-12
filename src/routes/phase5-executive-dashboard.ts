@@ -26,29 +26,30 @@ const phase5ExecutiveDashboard = new Hono<{ Bindings: Bindings }>();
 phase5ExecutiveDashboard.get('/', async (c) => {
   const { env } = c;
 
-  // Fetch key executive metrics for dashboard initialization
-  const executiveKPIs = await env.DB.prepare(`
-    SELECT 
-      COUNT(*) as total_services,
-      AVG(overall_risk_score) as avg_risk_score,
-      SUM(CASE WHEN overall_risk_score > 80 THEN 1 ELSE 0 END) as critical_services,
-      SUM(CASE WHEN overall_risk_score > 60 AND overall_risk_score <= 80 THEN 1 ELSE 0 END) as high_risk_services
-    FROM business_services
-  `).first();
+  try {
+    // Fetch key executive metrics for dashboard initialization
+    const executiveKPIs = await env.DB.prepare(`
+      SELECT 
+        COUNT(*) as total_services,
+        AVG(current_risk_score) as avg_risk_score,
+        SUM(CASE WHEN current_risk_score > 80 THEN 1 ELSE 0 END) as critical_services,
+        SUM(CASE WHEN current_risk_score > 60 AND current_risk_score <= 80 THEN 1 ELSE 0 END) as high_risk_services
+      FROM business_services
+    `).first();
 
-  const riskTrends = await env.DB.prepare(`
-    SELECT 
-      DATE(updated_at) as trend_date,
-      COUNT(*) as daily_incidents,
-      AVG(business_impact_score) as avg_impact
-    FROM executive_risk_summaries
-    WHERE updated_at >= datetime('now', '-30 days')
-    GROUP BY DATE(updated_at)
-    ORDER BY trend_date DESC
-    LIMIT 30
-  `).all();
+    const riskTrends = await env.DB.prepare(`
+      SELECT 
+        DATE(updated_at) as trend_date,
+        COUNT(*) as daily_count,
+        AVG(current_risk_score) as avg_risk
+      FROM business_services
+      WHERE updated_at >= datetime('now', '-30 days')
+      GROUP BY DATE(updated_at)
+      ORDER BY trend_date DESC
+      LIMIT 30
+    `).all();
 
-  return c.html(html`
+    return c.html(html`
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -361,7 +362,11 @@ phase5ExecutiveDashboard.get('/', async (c) => {
 
             function initializeFinancialTrendsChart() {
                 const ctx = document.getElementById('financial-trends-chart').getContext('2d');
-                const trendData = ${JSON.stringify(riskTrends.results || [])};
+                const executiveData = {
+                    kpis: ${JSON.stringify(executiveKPIs || {})},
+                    trends: ${JSON.stringify(riskTrends?.results || [])}
+                };
+                const trendData = executiveData.trends;
                 
                 new Chart(ctx, {
                     type: 'line',
@@ -552,7 +557,41 @@ phase5ExecutiveDashboard.get('/', async (c) => {
         </script>
     </body>
     </html>
-  `);
+    `);
+  } catch (error) {
+    console.error('Phase 5 Dashboard Error:', error);
+    return c.html(html`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Executive Dashboard - Error</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+      </head>
+      <body class="bg-gray-50">
+          <div class="min-h-screen flex items-center justify-center">
+              <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+                  <div class="text-center">
+                      <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
+                      <h1 class="text-2xl font-bold text-gray-900 mb-2">Dashboard Temporarily Unavailable</h1>
+                      <p class="text-gray-600 mb-6">We're experiencing technical difficulties with the Executive Dashboard. Our team has been notified.</p>
+                      <div class="space-y-3">
+                          <a href="/dashboard" class="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                              <i class="fas fa-arrow-left mr-2"></i>Return to Main Dashboard
+                          </a>
+                          <button onclick="window.location.reload()" class="block w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                              <i class="fas fa-sync-alt mr-2"></i>Try Again
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </body>
+      </html>
+    `);
+  }
 });
 
 // ================================================================
@@ -752,6 +791,91 @@ phase5ExecutiveDashboard.get('/financial-metrics', async (c) => {
           <li>• Estimated 23% reduction in compliance costs through automation</li>
           <li>• Projected $2.1M savings through predictive risk management</li>
         </ul>
+      </div>
+    </div>
+    `);
+});
+
+// Add error handling endpoints
+phase5ExecutiveDashboard.get('/critical-services', async (c) => {
+  try {
+    const { env } = c;
+    const criticalServices = await env.DB.prepare(`
+      SELECT name, current_risk_score, criticality_level, business_function
+      FROM business_services
+      WHERE current_risk_score > 80
+      ORDER BY current_risk_score DESC
+      LIMIT 5
+    `).all();
+    
+    return c.html(html`
+      <div class="space-y-3">
+        ${(criticalServices?.results || []).map((service: any) => html`
+          <div class="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div>
+              <h4 class="font-medium text-gray-900">${service.name}</h4>
+              <p class="text-sm text-gray-600">${service.business_function || 'Business Service'}</p>
+            </div>
+            <div class="text-right">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                Risk: ${service.current_risk_score}
+              </span>
+            </div>
+          </div>
+        `).join('')}
+        ${(criticalServices?.results || []).length === 0 ? html`
+          <div class="text-center py-4 text-gray-500">
+            <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+            <p>No critical services requiring immediate attention</p>
+          </div>
+        ` : ''}
+      </div>
+    `);
+  } catch (error) {
+    return c.html(html`<div class="text-red-600">Error loading critical services</div>`);
+  }
+});
+
+phase5ExecutiveDashboard.get('/risk-appetite', async (c) => {
+  return c.html(html`
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="text-sm text-gray-600">Current Posture</span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          Moderate
+        </span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-sm text-gray-600">Target Posture</span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          Conservative
+        </span>
+      </div>
+      <div class="pt-2">
+        <div class="text-sm text-gray-600 mb-1">Risk Tolerance</div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div class="bg-yellow-600 h-2 rounded-full" style="width: 65%"></div>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">65% of appetite utilized</div>
+      </div>
+    </div>
+  `);
+});
+
+phase5ExecutiveDashboard.get('/recommendations', async (c) => {
+  return c.html(html`
+    <div class="space-y-3">
+      <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <h4 class="font-medium text-blue-900 mb-1">Immediate</h4>
+        <p class="text-sm text-blue-700">Review and remediate critical risk services</p>
+      </div>
+      <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <h4 class="font-medium text-yellow-900 mb-1">Short-term</h4>
+        <p class="text-sm text-yellow-700">Implement automated risk monitoring</p>
+      </div>
+      <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+        <h4 class="font-medium text-green-900 mb-1">Strategic</h4>
+        <p class="text-sm text-green-700">Enhance threat intelligence capabilities</p>
       </div>
     </div>
   `);

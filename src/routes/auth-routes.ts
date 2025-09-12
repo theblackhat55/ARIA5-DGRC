@@ -394,6 +394,40 @@ export function createAuthRoutes() {
     // For now, just return success message
     return c.html(renderSuccess(`Password reset link sent to ${email}`));
   });
+
+  // Logout endpoint (to fix 404 error)
+  app.post('/logout', async (c) => {
+    // Clear all authentication cookies
+    deleteCookie(c, 'aria_token');
+    deleteCookie(c, 'aria_session');
+    deleteCookie(c, 'aria_csrf');
+    deleteCookie(c, 'aria_htmx');
+    
+    // For HTMX requests, return success message
+    if (c.req.header('HX-Request')) {
+      c.header('HX-Redirect', '/login');
+      return c.html(html`
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-check-circle text-green-500"></i>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-green-700">Successfully logged out</p>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+    
+    // Regular request - redirect to login
+    return c.redirect('/login?logged_out=1');
+  });
+
+  // GET route for logout (in case users navigate directly)
+  app.get('/logout', async (c) => {
+    return c.redirect('/login');
+  });
   
   return app;
 }

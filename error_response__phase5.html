@@ -1,18 +1,10 @@
-import { html } from 'hono/html';
 
-interface LayoutProps {
-  title: string;
-  content: any;
-  user?: any;
-}
-
-export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>${title} - ARIA5.1</title>
+  <title>Error - ARIA5.1</title>
   
   <!-- Progressive Web App Meta Tags -->
   <meta name="application-name" content="ARIA5.1 Platform">
@@ -164,11 +156,11 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
     }
     
     /* Touch-friendly active states */
-    .active\:scale-98:active {
+    .active:scale-98:active {
       transform: scale(0.98);
     }
     
-    .active\:scale-95:active {
+    .active:scale-95:active {
       transform: scale(0.95);
     }
     
@@ -182,10 +174,20 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
   </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
-  ${user ? renderCleanNavigation(user) : ''}
+  
   
   <main id="main-content">
-    ${content}
+    
+        <div class="flex items-center justify-center min-h-screen">
+          <div class="text-center">
+            <h1 class="text-4xl font-bold text-red-600">Error</h1>
+            <p class="text-gray-600 mt-4">Something went wrong. Please try again.</p>
+            <a href="/dashboard" class="mt-6 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              Go to Dashboard
+            </a>
+          </div>
+        </div>
+      
   </main>
   
   <!-- Global loading indicator -->
@@ -601,7 +603,7 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
               <div class="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
                 <div class="flex items-center mb-2">
                   <span class="font-semibold text-gray-800 text-sm">ARIA Assistant</span>
-                  <span class="ml-2 text-xs text-gray-500">${new Date().toLocaleTimeString()}</span>
+                  <span class="ml-2 text-xs text-gray-500">8:00:10 PM</span>
                 </div>
                 <p class="text-gray-700 text-sm leading-relaxed">
                   👋 Hello! I'm ARIA, your intelligent assistant. I'm here to help you with:
@@ -998,7 +1000,7 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
           });
           
           if (!response.ok) {
-            throw new Error(\`HTTP \${response.status}: \${response.statusText}\`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
           
           const data = await response.json();
@@ -1067,42 +1069,42 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
         messageContainer.id = messageId;
         
         if (isUser) {
-          messageContainer.innerHTML = \`
+          messageContainer.innerHTML = `
             <div class="flex items-start space-x-3 justify-end">
               <div class="flex-1 max-w-xs">
                 <div class="bg-blue-600 text-white rounded-xl p-3 shadow-sm">
-                  <p class="text-sm leading-relaxed">\${this.escapeHtml(text)}</p>
-                  <div class="mt-1 text-xs opacity-75">\${timestamp}</div>
+                  <p class="text-sm leading-relaxed">${this.escapeHtml(text)}</p>
+                  <div class="mt-1 text-xs opacity-75">${timestamp}</div>
                 </div>
               </div>
               <div class="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                 <i class="fas fa-user text-white text-sm"></i>
               </div>
             </div>
-          \`;
+          `;
         } else {
           const messageClass = isError ? 'bg-red-50 border border-red-200' : 'bg-white border border-gray-100';
           const iconClass = isError ? 'text-red-500' : 'text-blue-600';
           const textClass = isError ? 'text-red-700' : 'text-gray-700';
           
-          messageContainer.innerHTML = \`
+          messageContainer.innerHTML = `
             <div class="flex items-start space-x-3">
               <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <i class="fas fa-robot \${iconClass} text-sm"></i>
+                <i class="fas fa-robot ${iconClass} text-sm"></i>
               </div>
               <div class="flex-1">
-                <div class="\${messageClass} rounded-xl p-3 shadow-sm">
+                <div class="${messageClass} rounded-xl p-3 shadow-sm">
                   <div class="flex items-center mb-2">
                     <span class="font-semibold text-gray-800 text-sm">ARIA Assistant</span>
-                    <span class="ml-2 text-xs text-gray-500">\${timestamp}</span>
+                    <span class="ml-2 text-xs text-gray-500">${timestamp}</span>
                   </div>
-                  <div class="\${textClass} text-sm leading-relaxed">
-                    \${this.formatMessage(text)}
+                  <div class="${textClass} text-sm leading-relaxed">
+                    ${this.formatMessage(text)}
                   </div>
                 </div>
               </div>
             </div>
-          \`;
+          `;
         }
         
         this.messages.appendChild(messageContainer);
@@ -1122,15 +1124,15 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
         let formatted = this.escapeHtml(text);
         
         // Convert URLs to links
-        formatted = formatted.replace(new RegExp('(https?:\\/\\/[^\\s]+)', 'g'), '<a href="$1" target="_blank" class="text-blue-600 hover:underline">$1</a>');
+        formatted = formatted.replace(new RegExp('(https?:\/\/[^\s]+)', 'g'), '<a href="$1" target="_blank" class="text-blue-600 hover:underline">$1</a>');
         
         // Convert line breaks
-        formatted = formatted.replace(new RegExp('\\n', 'g'), '<br>');
+        formatted = formatted.replace(new RegExp('\n', 'g'), '<br>');
         
         // Highlight important terms
-        formatted = formatted.replace(new RegExp('\\b(HIGH|CRITICAL|URGENT)\\b', 'gi'), '<span class="bg-red-100 text-red-800 px-1 rounded">$1</span>');
-        formatted = formatted.replace(new RegExp('\\b(LOW|INFORMATIONAL)\\b', 'gi'), '<span class="bg-green-100 text-green-800 px-1 rounded">$1</span>');
-        formatted = formatted.replace(new RegExp('\\b(MEDIUM|WARNING)\\b', 'gi'), '<span class="bg-yellow-100 text-yellow-800 px-1 rounded">$1</span>');
+        formatted = formatted.replace(new RegExp('\b(HIGH|CRITICAL|URGENT)\b', 'gi'), '<span class="bg-red-100 text-red-800 px-1 rounded">$1</span>');
+        formatted = formatted.replace(new RegExp('\b(LOW|INFORMATIONAL)\b', 'gi'), '<span class="bg-green-100 text-green-800 px-1 rounded">$1</span>');
+        formatted = formatted.replace(new RegExp('\b(MEDIUM|WARNING)\b', 'gi'), '<span class="bg-yellow-100 text-yellow-800 px-1 rounded">$1</span>');
         
         return formatted;
       }
@@ -1478,622 +1480,3 @@ export const cleanLayout = ({ title, content, user }: LayoutProps) => html`
   </script>
 </body>
 </html>
-`;
-
-const renderCleanNavigation = (user: any) => html`
-  <nav class="bg-white shadow-lg border-b border-gray-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-16">
-        <!-- Logo and Brand -->
-        <div class="flex items-center space-x-3">
-          <a href="/dashboard" class="flex items-center space-x-3">
-            <div class="h-10 w-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-              <i class="fas fa-shield-alt text-white"></i>
-            </div>
-            <div class="hidden sm:block">
-              <h1 class="text-xl font-semibold text-gray-900">ARIA5.1</h1>
-              <p class="text-xs text-gray-500">Clean Edition</p>
-            </div>
-            <div class="block sm:hidden">
-              <h1 class="text-lg font-semibold text-gray-900">ARIA5</h1>
-            </div>
-          </a>
-        </div>
-
-        <!-- Mobile menu button - Enhanced UX -->
-        <div class="md:hidden">
-          <button id="mobile-menu-button" 
-                  class="flex items-center justify-center w-10 h-10 text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg transition-all duration-200 mobile-menu-button"
-                  aria-label="Toggle navigation menu"
-                  aria-expanded="false">
-            <i id="mobile-menu-icon" class="fas fa-bars text-lg"></i>
-          </button>
-        </div>
-        
-        <!-- Desktop Navigation Menu -->
-        <div class="hidden md:flex items-center space-x-2">
-          <!-- Overview Dropdown -->
-          <div class="relative" data-dropdown>
-            <button data-dropdown-button class="flex items-center space-x-1 text-gray-700 hover:text-blue-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              <i class="fas fa-chart-line mr-1"></i>
-              <span>Overview</span>
-              <i class="fas fa-chevron-down text-xs"></i>
-            </button>
-            <div data-dropdown-menu class="dropdown-menu absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div class="py-2">
-                <a href="/dashboard" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                  <i class="fas fa-tachometer-alt w-5 text-blue-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Dashboard</div>
-                    <div class="text-xs text-gray-500">Main overview and metrics</div>
-                  </div>
-                </a>
-                <a href="/reports" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                  <i class="fas fa-chart-bar w-5 text-green-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Reports & Analytics</div>
-                    <div class="text-xs text-gray-500">Generate reports</div>
-                  </div>
-                </a>
-                <div class="border-t border-gray-100 my-2"></div>
-                <a href="/intelligence" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                  <i class="fas fa-brain w-5 text-purple-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Threat Intelligence</div>
-                    <div class="text-xs text-gray-500">Enhanced TI with AI & ML</div>
-                  </div>
-                </a>
-                <a href="/ai" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                  <i class="fas fa-robot w-5 text-blue-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">AI Assistant</div>
-                    <div class="text-xs text-gray-500">Enhanced with TI capabilities</div>
-                  </div>
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Risk Dropdown -->
-          <div class="relative" data-dropdown>
-            <button data-dropdown-button class="flex items-center space-x-1 text-gray-700 hover:text-blue-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              <i class="fas fa-exclamation-triangle mr-1"></i>
-              <span>Risk</span>
-              <i class="fas fa-chevron-down text-xs"></i>
-            </button>
-            <div data-dropdown-menu class="dropdown-menu absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div class="py-2">
-                <a href="/risk" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700">
-                  <i class="fas fa-shield-alt w-5 text-red-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Risk Register</div>
-                    <div class="text-xs text-gray-500">View and manage risks</div>
-                  </div>
-                </a>
-                <a href="/risk/create" hx-get="/risk/create" hx-target="#modal-container" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700">
-                  <i class="fas fa-plus w-5 text-orange-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">New Risk</div>
-                    <div class="text-xs text-gray-500">Register new threat</div>
-                  </div>
-                </a>
-                <a href="/risk/assessments" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700">
-                  <i class="fas fa-clipboard-check w-5 text-yellow-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Assessments</div>
-                    <div class="text-xs text-gray-500">Risk evaluations</div>
-                  </div>
-                </a>
-                <a href="/risk-controls" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700">
-                  <i class="fas fa-link w-5 text-purple-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Risk-Control Mapping</div>
-                    <div class="text-xs text-gray-500">AI-powered control linkage</div>
-                  </div>
-                </a>
-                <!-- Dynamic Risk Management Section -->
-                <div class="border-t border-gray-100 my-2"></div>
-                <div class="px-4 py-2">
-                  <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Dynamic Risk Management</div>
-                </div>
-                <a href="/dynamic-risk-analysis" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">
-                  <i class="fas fa-chart-network w-5 text-indigo-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Enhanced Risk Analysis</div>
-                    <div class="text-xs text-gray-500">Multi-trigger cybersecurity & operational</div>
-                  </div>
-                </a>
-                <a href="/phase1" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                  <i class="fas fa-shield-alt w-5 text-blue-600 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Service-Centric Intelligence</div>
-                    <div class="text-xs text-gray-500">Phase 1 - Asset risk correlation</div>
-                  </div>
-                </a>
-                <a href="/phase2" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-brain w-5 text-purple-600 mr-3"></i>
-                  <div>
-                    <div class="font-medium">AI Orchestration</div>
-                    <div class="text-xs text-gray-500">Phase 2 - Unified AI intelligence</div>
-                  </div>
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Compliance Dropdown -->
-          <div class="relative" data-dropdown>
-            <button data-dropdown-button class="flex items-center space-x-1 text-gray-700 hover:text-blue-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              <i class="fas fa-clipboard-check mr-1"></i>
-              <span>Compliance</span>
-              <i class="fas fa-chevron-down text-xs"></i>
-            </button>
-            <div data-dropdown-menu class="dropdown-menu absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div class="py-2">
-                <a href="/compliance/dashboard" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 border-b border-gray-100">
-                  <i class="fas fa-tachometer-alt w-5 text-green-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Dashboard</div>
-                    <div class="text-xs text-gray-500">Compliance Overview</div>
-                  </div>
-                </a>
-                <a href="/compliance/automation" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 border-b border-gray-100">
-                  <i class="fas fa-robot w-5 text-blue-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Automation Center</div>
-                    <div class="text-xs text-gray-500">Workflows & Monitoring</div>
-                  </div>
-                </a>
-                <a href="/compliance/frameworks" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700">
-                  <i class="fas fa-layer-group w-5 text-blue-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Framework Management</div>
-                    <div class="text-xs text-gray-500">SOC 2, ISO 27001, Custom</div>
-                  </div>
-                </a>
-                <a href="/compliance/soa" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700">
-                  <i class="fas fa-file-contract w-5 text-purple-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">SoA</div>
-                    <div class="text-xs text-gray-500">Statement of Applicability</div>
-                  </div>
-                </a>
-                <a href="/compliance/evidence" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700">
-                  <i class="fas fa-folder-open w-5 text-orange-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Evidence</div>
-                    <div class="text-xs text-gray-500">Documentation & Proof</div>
-                  </div>
-                </a>
-                <a href="/compliance/assessments" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700">
-                  <i class="fas fa-clipboard-check w-5 text-green-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Assessments</div>
-                    <div class="text-xs text-gray-500">Compliance Audits</div>
-                  </div>
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Operations Dropdown -->
-          <div class="relative" data-dropdown>
-            <button data-dropdown-button class="nav-item flex items-center space-x-1 text-gray-700 hover:text-green-600 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
-              <i class="fas fa-cogs mr-1"></i>
-              <span>Operations</span>
-              <i class="fas fa-chevron-down text-xs"></i>
-            </button>
-            <div data-dropdown-menu class="dropdown-menu absolute left-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div class="py-2">
-                <a href="/operations" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors">
-                  <i class="fas fa-shield-alt w-5 text-blue-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Operations Center</div>
-                    <div class="text-xs text-gray-500">Microsoft Defender & security operations</div>
-                  </div>
-                </a>
-                <a href="/operations/assets" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors">
-                  <i class="fas fa-server w-5 text-green-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Asset Management</div>
-                    <div class="text-xs text-gray-500">IT assets & infrastructure</div>
-                  </div>
-                </a>
-                <a href="/operations/services" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors">
-                  <i class="fas fa-sitemap w-5 text-green-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Service Management</div>
-                    <div class="text-xs text-gray-500">Business services & CIA ratings</div>
-                  </div>
-                </a>
-                <a href="/documents" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors">
-                  <i class="fas fa-file-alt w-5 text-blue-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Document Management</div>
-                    <div class="text-xs text-gray-500">Policies, procedures & documents</div>
-                  </div>
-                </a>
-                <div class="border-t border-gray-100 my-2"></div>
-                <a href="/intelligence/feeds" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors">
-                  <i class="fas fa-rss w-5 text-purple-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Threat Intelligence Feeds</div>
-                    <div class="text-xs text-gray-500">Multi-source feeds & STIX/TAXII configuration</div>
-                  </div>
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Advanced Analytics Dropdown -->
-          <div class="relative" data-dropdown>
-            <button data-dropdown-button class="flex items-center space-x-1 text-gray-700 hover:text-purple-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              <i class="fas fa-brain mr-1"></i>
-              <span>AI & ML</span>
-              <i class="fas fa-chevron-down text-xs"></i>
-            </button>
-            <div data-dropdown-menu class="dropdown-menu absolute left-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div class="py-2">
-                <a href="/intelligence/correlation-engine" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-network-wired w-5 text-green-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">ML Correlation Engine</div>
-                    <div class="text-xs text-gray-500">Threat clustering & attribution</div>
-                  </div>
-                </a>
-                <a href="/intelligence/behavioral-analytics" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-chart-line w-5 text-orange-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Behavioral Analytics</div>
-                    <div class="text-xs text-gray-500">Anomaly detection & profiling</div>
-                  </div>
-                </a>
-                <a href="/intelligence/neural-network" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-project-diagram w-5 text-purple-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Neural Network Analysis</div>
-                    <div class="text-xs text-gray-500">Deep learning behavioral models</div>
-                  </div>
-                </a>
-                <a href="/intelligence/risk-scoring" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-calculator w-5 text-yellow-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">Advanced Risk Scoring</div>
-                    <div class="text-xs text-gray-500">ML-optimized threat scoring</div>
-                  </div>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          
-          <!-- Admin (if admin user) -->
-          ${user?.role === 'admin' ? html`
-          <div class="relative" data-dropdown>
-            <button data-dropdown-button class="flex items-center space-x-1 text-gray-700 hover:text-blue-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              <i class="fas fa-user-shield mr-1"></i>
-              <span>Admin</span>
-              <i class="fas fa-chevron-down text-xs"></i>
-            </button>
-            <div data-dropdown-menu class="dropdown-menu absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div class="py-2">
-                <a href="/admin" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-cogs w-5 text-purple-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">System Settings</div>
-                    <div class="text-xs text-gray-500">Configuration</div>
-                  </div>
-                </a>
-                <a href="/admin/users" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700">
-                  <i class="fas fa-users w-5 text-indigo-500 mr-3"></i>
-                  <div>
-                    <div class="font-medium">User Management</div>
-                    <div class="text-xs text-gray-500">Manage users and roles</div>
-                  </div>
-                </a>
-              </div>
-            </div>
-          </div>
-          ` : ''}
-        </div>
-        
-        <!-- Desktop Right side: Notifications + User -->
-        <div class="hidden md:flex items-center space-x-4">
-          <!-- Notification Bell (Static) -->
-          <div class="relative" data-dropdown>
-            <button data-dropdown-button class="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
-              <i class="fas fa-bell text-lg"></i>
-              <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                3
-              </span>
-            </button>
-            <div data-dropdown-menu class="dropdown-menu absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div class="p-4 border-b border-gray-100">
-                <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
-              </div>
-              <div class="max-h-80 overflow-y-auto">
-                <div class="p-4">
-                  <div class="space-y-3">
-                    <div class="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
-                      <i class="fas fa-exclamation-triangle text-red-500 mt-1"></i>
-                      <div class="flex-1 text-sm">
-                        <p class="font-medium text-gray-900">High Risk Alert</p>
-                        <p class="text-gray-600">New critical risk identified</p>
-                        <p class="text-xs text-gray-400 mt-1">2 minutes ago</p>
-                      </div>
-                    </div>
-                    <div class="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
-                      <i class="fas fa-check-circle text-green-500 mt-1"></i>
-                      <div class="flex-1 text-sm">
-                        <p class="font-medium text-gray-900">Compliance Update</p>
-                        <p class="text-gray-600">ISO 27001 audit completed</p>
-                        <p class="text-xs text-gray-400 mt-1">1 hour ago</p>
-                      </div>
-                    </div>
-                    <div class="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
-                      <i class="fas fa-info-circle text-blue-500 mt-1"></i>
-                      <div class="flex-1 text-sm">
-                        <p class="font-medium text-gray-900">System Update</p>
-                        <p class="text-gray-600">New features available</p>
-                        <p class="text-xs text-gray-400 mt-1">3 hours ago</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- User Section -->
-          <span class="text-sm text-gray-600 hidden lg:block">Welcome, ${user?.username || 'User'}</span>
-          <button hx-post="/auth/logout" 
-                  hx-redirect="/"
-                  class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-            <i class="fas fa-sign-out-alt lg:mr-1"></i>
-            <span class="hidden lg:inline">Logout</span>
-          </button>
-        </div>
-      </div>
-      
-      <!-- Mobile Navigation Menu - Fixed Layout Issues -->
-      <div class="mobile-menu-container md:hidden">
-        <div id="mobile-menu" class="hidden bg-white border-t border-gray-200">
-        <div class="px-4 py-4">
-          
-          <!-- Quick Actions Section -->
-          <div class="mb-6">
-            <div class="grid grid-cols-2 gap-3 mb-4">
-              <a href="/dashboard" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 hover:from-blue-100 hover:to-blue-150 active:scale-95 transition-all">
-                <i class="fas fa-tachometer-alt text-blue-600 text-xl mb-2"></i>
-                <span class="text-sm font-semibold text-blue-800">Dashboard</span>
-              </a>
-              <a href="/ai-analytics" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 hover:from-purple-100 hover:to-purple-150 active:scale-95 transition-all">
-                <i class="fas fa-brain text-purple-600 text-xl mb-2"></i>
-                <span class="text-sm font-semibold text-purple-800">AI Analytics</span>
-
-              </a>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mb-3">
-              <a href="/predictions" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200 hover:from-indigo-100 hover:to-indigo-150 active:scale-95 transition-all">
-                <i class="fas fa-chart-line text-indigo-600 text-xl mb-2"></i>
-                <span class="text-sm font-semibold text-indigo-800">ML Predictions</span>
-
-              </a>
-              <a href="/telemetry" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-teal-50 to-teal-100 rounded-xl border border-teal-200 hover:from-teal-100 hover:to-teal-150 active:scale-95 transition-all">
-                <i class="fas fa-satellite-dish text-teal-600 text-xl mb-2"></i>
-                <span class="text-sm font-semibold text-teal-800">Telemetry</span>
-
-              </a>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <button hx-get="/risk/create" hx-target="#modal-container" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-xl border border-red-200 hover:from-red-100 hover:to-red-150 active:scale-95 transition-all">
-                <i class="fas fa-plus text-red-600 text-xl mb-2"></i>
-                <span class="text-sm font-semibold text-red-800">New Risk</span>
-              </button>
-              <a href="/evidence" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 hover:from-green-100 hover:to-green-150 active:scale-95 transition-all">
-                <i class="fas fa-folder-open text-green-600 text-xl mb-2"></i>
-                <span class="text-sm font-semibold text-green-800">Evidence</span>
-
-              </a>
-            </div>
-          </div>
-          
-          <!-- Main Navigation Categories -->
-          <div class="space-y-4">
-            
-            <!-- Risk Management -->
-            <div class="bg-red-50 rounded-xl p-1 border border-red-100">
-              <div class="px-3 py-2 bg-red-100 rounded-lg mb-2">
-                <h3 class="text-sm font-bold text-red-800 flex items-center">
-                  <i class="fas fa-exclamation-triangle mr-2"></i>
-                  Risk Management
-                </h3>
-              </div>
-              <div class="px-2 space-y-1">
-                <a href="/risk" class="flex items-center p-3 hover:bg-red-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-shield-alt text-red-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-red-800">Risk Register</span>
-                </a>
-                <a href="/risk/assessments" class="flex items-center p-3 hover:bg-red-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-clipboard-check text-red-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-red-800">Assessments</span>
-                </a>
-                <a href="/risk-controls" class="flex items-center p-3 hover:bg-red-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-link text-red-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-red-800">Control Mapping</span>
-                </a>
-                <a href="/phase1" class="flex items-center p-3 hover:bg-blue-100 rounded-lg transition-colors active:scale-98 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 mt-2">
-                  <i class="fas fa-shield-alt text-blue-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-blue-800">Dynamic Risk Intelligence</span>
-                </a>
-                <a href="/phase2" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98 bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 mt-2">
-                  <i class="fas fa-brain text-purple-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">AI Orchestration</span>
-                </a>
-              </div>
-            </div>
-            
-            <!-- Compliance -->
-            <div class="bg-green-50 rounded-xl p-1 border border-green-100">
-              <div class="px-3 py-2 bg-green-100 rounded-lg mb-2">
-                <h3 class="text-sm font-bold text-green-800 flex items-center">
-                  <i class="fas fa-clipboard-check mr-2"></i>
-                  Compliance
-                </h3>
-              </div>
-              <div class="px-2 space-y-1">
-                <a href="/compliance/frameworks" class="flex items-center p-3 hover:bg-green-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-layer-group text-green-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-green-800">Frameworks</span>
-                </a>
-                <a href="/compliance/evidence" class="flex items-center p-3 hover:bg-green-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-folder-open text-green-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-green-800">Evidence</span>
-                </a>
-                <a href="/compliance/assessments" class="flex items-center p-3 hover:bg-green-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-tasks text-green-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-green-800">Assessments</span>
-                </a>
-              </div>
-            </div>
-            
-            <!-- Operations -->
-            <div class="bg-blue-50 rounded-xl p-1 border border-blue-100">
-              <div class="px-3 py-2 bg-blue-100 rounded-lg mb-2">
-                <h3 class="text-sm font-bold text-blue-800 flex items-center">
-                  <i class="fas fa-cogs mr-2"></i>
-                  Operations
-                </h3>
-              </div>
-              <div class="px-2 space-y-1">
-                <a href="/operations" class="flex items-center p-3 hover:bg-blue-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-shield-alt text-blue-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-blue-800">Operations Center</span>
-                </a>
-                <a href="/operations/assets" class="flex items-center p-3 hover:bg-blue-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-server text-blue-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-blue-800">Assets</span>
-                </a>
-                <a href="/operations/services" class="flex items-center p-3 hover:bg-blue-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-sitemap text-blue-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-blue-800">Services</span>
-                </a>
-                <a href="/documents" class="flex items-center p-3 hover:bg-blue-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-file-alt text-blue-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-blue-800">Documents</span>
-                </a>
-                <div class="border-t border-blue-200 my-2 mx-2"></div>
-                <a href="/intelligence/feeds" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98 bg-gradient-to-r from-purple-50 to-purple-100">
-                  <i class="fas fa-rss text-purple-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">TI Feeds</span>
-                </a>
-              </div>
-            </div>
-            
-            <!-- Enhanced AI & Analytics -->
-            <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-1 border border-purple-200">
-              <div class="px-3 py-2 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-lg mb-2">
-                <h3 class="text-sm font-bold text-purple-800 flex items-center">
-                  <i class="fas fa-brain mr-2"></i>
-                  Enhanced AI & ML
-                </h3>
-              </div>
-              <div class="px-2 space-y-1">
-                <!-- Core AI Features -->
-                <a href="/ai-analytics" class="flex items-center p-3 hover:bg-gradient-to-r hover:from-purple-100 hover:to-purple-150 rounded-lg transition-all active:scale-98 border border-purple-200 bg-white">
-                  <i class="fas fa-chart-bar text-purple-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">AI Analytics Dashboard</span>
-
-                </a>
-                <a href="/predictions" class="flex items-center p-3 hover:bg-gradient-to-r hover:from-purple-100 hover:to-purple-150 rounded-lg transition-all active:scale-98 border border-purple-200 bg-white">
-                  <i class="fas fa-brain text-indigo-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">ML Risk Predictions</span>
-
-                </a>
-                <a href="/telemetry" class="flex items-center p-3 hover:bg-gradient-to-r hover:from-teal-100 hover:to-teal-150 rounded-lg transition-all active:scale-98 border border-teal-200 bg-white">
-                  <i class="fas fa-satellite-dish text-teal-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">Real-Time Telemetry</span>
-
-                </a>
-                <a href="/evidence" class="flex items-center p-3 hover:bg-gradient-to-r hover:from-green-100 hover:to-green-150 rounded-lg transition-all active:scale-98 border border-green-200 bg-white">
-                  <i class="fas fa-folder-open text-green-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">Evidence Collection</span>
-
-                </a>
-                
-                <!-- Divider -->
-                <div class="border-t border-purple-200 my-2 mx-2"></div>
-                
-                <!-- Traditional TI Features -->
-                <a href="/intelligence" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-shield-alt text-purple-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">TI Dashboard</span>
-                </a>
-                <a href="/ai" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-robot text-purple-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">AI Assistant</span>
-                </a>
-                <a href="/intelligence/correlation-engine" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-network-wired text-purple-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">ML Correlation</span>
-                </a>
-                <a href="/intelligence/behavioral-analytics" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-chart-line text-purple-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">Behavioral Analytics</span>
-                </a>
-                <a href="/intelligence/feeds" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-rss text-purple-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">Multi-Source Feeds</span>
-                </a>
-              </div>
-            </div>
-            
-            <!-- Admin Section (if admin) -->
-            ${user?.role === 'admin' ? html`
-            <div class="bg-purple-50 rounded-xl p-1 border border-purple-100">
-              <div class="px-3 py-2 bg-purple-100 rounded-lg mb-2">
-                <h3 class="text-sm font-bold text-purple-800 flex items-center">
-                  <i class="fas fa-user-shield mr-2"></i>
-                  Administration
-                </h3>
-              </div>
-              <div class="px-2 space-y-1">
-                <a href="/admin" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-cogs text-purple-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">Settings</span>
-                </a>
-                <a href="/admin/users" class="flex items-center p-3 hover:bg-purple-100 rounded-lg transition-colors active:scale-98">
-                  <i class="fas fa-users text-purple-600 w-6 mr-3"></i>
-                  <span class="text-sm font-medium text-purple-800">Users</span>
-                </a>
-              </div>
-            </div>
-            ` : ''}
-          </div>
-          
-          <!-- User Account Section -->
-          <div class="mt-6 pt-4 border-t-2 border-gray-100">
-            <div class="bg-gray-50 rounded-xl p-4 mb-3">
-              <div class="flex items-center space-x-3 mb-3">
-                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                  <i class="fas fa-user text-white text-lg"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-base font-semibold text-gray-900 truncate">${user?.username || 'User'}</p>
-                  <p class="text-sm text-gray-600 capitalize">${user?.role || 'User'}</p>
-                </div>
-              </div>
-              <button hx-post="/auth/logout" 
-                      hx-redirect="/"
-                      class="w-full flex items-center justify-center p-3 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-lg font-medium transition-colors active:scale-98">
-                <i class="fas fa-sign-out-alt mr-2"></i>
-                <span>Sign Out</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        </div>
-      </div>
-    </div>
-  </nav>
-`;

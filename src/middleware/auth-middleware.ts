@@ -277,3 +277,21 @@ export function setCSRFToken(c: Context): string {
   
   return token;
 }
+
+// Audit middleware placeholder (simple version)
+export async function auditMiddleware(c: Context, next: Next) {
+  const startTime = Date.now();
+  
+  // Log request
+  const userEmail = getCookie(c, 'user_email') || 'anonymous';
+  const method = c.req.method;
+  const path = c.req.path;
+  
+  console.log(`[AUDIT] ${userEmail} ${method} ${path} - Started`);
+  
+  await next();
+  
+  // Log response
+  const duration = Date.now() - startTime;
+  console.log(`[AUDIT] ${userEmail} ${method} ${path} - Completed in ${duration}ms`);
+}

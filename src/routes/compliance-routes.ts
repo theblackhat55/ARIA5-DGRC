@@ -17,6 +17,56 @@ export function createComplianceRoutes() {
   app.get('/', async (c) => {
     return c.redirect('/compliance/frameworks');
   });
+
+  // Compliance Dashboard route (to fix 404 error)
+  app.get('/dashboard', async (c) => {
+    return c.redirect('/compliance/frameworks');
+  });
+
+  // Missing compliance sub-routes (to fix 404 errors)
+  app.get('/automation', async (c) => {
+    const user = c.get('user');
+    return c.html(
+      cleanLayout({
+        title: 'Compliance Automation',
+        user,
+        content: html`
+          <div class="max-w-6xl mx-auto p-6">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-robot text-blue-600 mr-2"></i>
+                Compliance Automation
+              </h2>
+              <p class="text-gray-600 mb-4">Automated compliance monitoring and reporting</p>
+              <div class="bg-blue-50 rounded-lg p-4">
+                <p class="text-sm text-blue-700">Automation features coming soon...</p>
+              </div>
+            </div>
+          </div>
+        `
+      })
+    );
+  });
+
+  app.get('/assessments/new', async (c) => {
+    const user = c.get('user');
+    return c.html(
+      cleanLayout({
+        title: 'New Assessment',
+        user,
+        content: html`
+          <div class="max-w-6xl mx-auto p-6">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <h2 class="text-xl font-semibold mb-4">Create New Compliance Assessment</h2>
+              <div class="bg-yellow-50 rounded-lg p-4">
+                <p class="text-sm text-yellow-700">Assessment creation wizard coming soon...</p>
+              </div>
+            </div>
+          </div>
+        `
+      })
+    );
+  });
   
   // Framework Management (Main Page - matches ARIA5 image)
   app.get('/frameworks', async (c) => {

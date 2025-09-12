@@ -468,17 +468,9 @@ export function createAdminRoutesARIA5() {
       // Try enhanced services first, fallback to basic if they fail
       let stats, samlConfig;
       
-      try {
-        const rbacService = new EnhancedRBACService(c.env.DB);
-        const samlService = new EnhancedSAMLService(c.env.DB);
-        stats = await getUserStatsEnhanced(c.env.DB, rbacService);
-        samlConfig = await samlService.getSAMLConfig();
-      } catch (enhancedError) {
-        console.warn('Enhanced services failed, using basic stats:', enhancedError);
-        // Fallback to basic stats
-        stats = await getBasicUserStats(c.env.DB);
-        samlConfig = { enabled: false };
-      }
+      // Use basic stats (enhanced services not implemented yet)
+      stats = await getBasicUserStats(c.env.DB);
+      samlConfig = { enabled: false };
       
       return c.html(
         cleanLayout({

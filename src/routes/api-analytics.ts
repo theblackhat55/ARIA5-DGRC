@@ -1,226 +1,390 @@
+// Analytics API Routes
+// Comprehensive analytics and reporting endpoints for TI-enhanced risk management
+
 import { Hono } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { requireAuth } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
-import { MLAnalyticsService } from '../services/ml-analytics';
+import { AnalyticsEngine } from '../services/analytics-engine';
 
 const apiAnalyticsRoutes = new Hono();
 
 // Apply authentication middleware to all routes
 apiAnalyticsRoutes.use('*', requireAuth);
 
-// Initialize service
-const mlService = new MLAnalyticsService();
-
-// ML Analytics Overview API
-apiAnalyticsRoutes.get('/overview', requirePermission('analytics:view'), async (c) => {
-  try {
-    const overview = await mlService.getAnalyticsOverview();
-    return c.json(overview);
-  } catch (error) {
-    console.error('Error getting analytics overview:', error);
-    return c.json({ error: 'Failed to get analytics overview' }, 500);
+// Initialize analytics engine with DB binding
+const initializeAnalyticsEngine = (c: any) => {
+  const db = c.env?.DB;
+  if (!db) {
+    throw new Error('Database binding not available');
   }
-});
+  return new AnalyticsEngine(db);
+};
 
-// Risk Predictions API
-apiAnalyticsRoutes.get('/predictions', requirePermission('analytics:view'), async (c) => {
-  try {
-    const predictions = await mlService.getAllPredictions();
-    return c.json(predictions);
-  } catch (error) {
-    console.error('Error getting predictions:', error);
-    return c.json({ error: 'Failed to get predictions' }, 500);
-  }
-});
+// ========================================
+// TREND ANALYSIS
+// ========================================
 
-apiAnalyticsRoutes.get('/predictions/recent', requirePermission('analytics:view'), async (c) => {
-  try {
-    const predictions = await mlService.getRecentPredictions(10);
-    return c.json(predictions);
-  } catch (error) {
-    console.error('Error getting recent predictions:', error);
-    return c.json({ error: 'Failed to get recent predictions' }, 500);
-  }
-});
-
-apiAnalyticsRoutes.post('/predictions', requirePermission('analytics:create'), async (c) => {
-  try {
-    const riskData = await c.req.json();
-    
-    // Validate required fields
-    const requiredFields = ['asset_type', 'vulnerability_count', 'patch_level', 'exposure_score', 'historical_incidents'];
-    for (const field of requiredFields) {
-      if (riskData[field] === undefined || riskData[field] === null) {
-        return c.json({ error: `Missing required field: ${field}` }, 400);
-      }
-    }
-
-    const prediction = await mlService.predictRiskLikelihood(riskData);
-    return c.json(prediction);
-  } catch (error) {
-    console.error('Error creating prediction:', error);
-    return c.json({ error: 'Failed to create prediction' }, 500);
-  }
-});
-
-apiAnalyticsRoutes.get('/predictions/:id', requirePermission('analytics:view'), async (c) => {
-  try {
-    const id = c.req.param('id');
-    const prediction = await mlService.getPredictionById(id);
-    
-    if (!prediction) {
-      return c.json({ error: 'Prediction not found' }, 404);
-    }
-    
-    return c.json(prediction);
-  } catch (error) {
-    console.error('Error getting prediction:', error);
-    return c.json({ error: 'Failed to get prediction' }, 500);
-  }
-});
-
-// Trend Analysis API
+// Get trend analysis for specified period
 apiAnalyticsRoutes.get('/trends', requirePermission('analytics:view'), async (c) => {
   try {
+    const analyticsEngine = initializeAnalyticsEngine(c);
     const days = parseInt(c.req.query('days') || '30');
-    const trends = await mlService.analyzeTrends(days);
-    return c.json(trends);
+    
+    if (days < 1 || days > 365) {
+      return c.json({
+        success: false,
+        error: 'Days parameter must be between 1 and 365'
+      }, 400);
+    }
+    
+    const trendAnalysis = await analyticsEngine.generateTrendAnalysis(days);
+    
+    return c.json({
+      success: true,
+      data: trendAnalysis,
+      generated_at: new Date().toISOString()
+    });
   } catch (error) {
-    console.error('Error getting trends:', error);
-    return c.json({ error: 'Failed to get trends' }, 500);
+    console.error('Error generating trend analysis:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to generate trend analysis',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 });
 
-apiAnalyticsRoutes.post('/trends/report', requirePermission('analytics:view'), async (c) => {
+// ========================================
+// THREAT LANDSCAPE ANALYSIS
+// ========================================
+
+// Get comprehensive threat landscape analysis
+apiAnalyticsRoutes.get('/threat-landscape', requirePermission('analytics:view'), async (c) => {
   try {
-    const days = parseInt(c.req.query('days') || '30');
+    const analyticsEngine = initializeAnalyticsEngine(c);
+    const userEmail = getCookie(c, 'user_email') || '';
     
-    // Generate trend report (mock implementation)
-    const reportData = await mlService.generateTrendReport(days);
+    const threatLandscape = await analyticsEngine.analyzeThreatLandscape();
     
-    // In a real implementation, this would generate a PDF using a library like PDFKit
-    const reportContent = JSON.stringify(reportData, null, 2);
+    console.log(`Threat landscape analysis requested by ${userEmail}`);
     
-    return new Response(reportContent, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename="trend-analysis-${new Date().toISOString().split('T')[0]}.json"`
+    return c.json({
+      success: true,
+      data: threatLandscape,
+      generated_at: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error analyzing threat landscape:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to analyze threat landscape',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// ========================================
+// RISK CORRELATION ANALYSIS
+// ========================================
+
+// Perform risk correlation analysis
+apiAnalyticsRoutes.get('/correlations', requirePermission('analytics:view'), async (c) => {
+  try {
+    const analyticsEngine = initializeAnalyticsEngine(c);
+    const userEmail = getCookie(c, 'user_email') || '';
+    
+    const correlationAnalysis = await analyticsEngine.performRiskCorrelationAnalysis();
+    
+    console.log(`Risk correlation analysis requested by ${userEmail}`);
+    
+    return c.json({
+      success: true,
+      data: correlationAnalysis,
+      generated_at: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error performing correlation analysis:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to perform correlation analysis',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// ========================================
+// EXECUTIVE REPORTING
+// ========================================
+
+// Generate executive report
+apiAnalyticsRoutes.get('/executive-report', requirePermission('analytics:executive'), async (c) => {
+  try {
+    const analyticsEngine = initializeAnalyticsEngine(c);
+    const period = c.req.query('period') || '30d';
+    const userEmail = getCookie(c, 'user_email') || '';
+    
+    // Validate period format (Xd for X days)
+    if (!/^\d+d$/.test(period)) {
+      return c.json({
+        success: false,
+        error: 'Invalid period format. Use format: "30d" for 30 days'
+      }, 400);
+    }
+    
+    const executiveReport = await analyticsEngine.generateExecutiveReport(period);
+    
+    console.log(`Executive report generated by ${userEmail} for period ${period}`);
+    
+    return c.json({
+      success: true,
+      data: executiveReport
+    });
+  } catch (error) {
+    console.error('Error generating executive report:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to generate executive report',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Download executive report as PDF (placeholder - would integrate with PDF generation)
+apiAnalyticsRoutes.get('/executive-report/pdf', requirePermission('analytics:executive'), async (c) => {
+  try {
+    const period = c.req.query('period') || '30d';
+    const userEmail = getCookie(c, 'user_email') || '';
+    
+    // This would generate a PDF version of the executive report
+    // For now, return a placeholder response
+    console.log(`PDF executive report requested by ${userEmail} for period ${period}`);
+    
+    return c.json({
+      success: true,
+      message: 'PDF generation feature coming soon',
+      download_url: '/api/analytics/executive-report/pdf/placeholder.pdf',
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    });
+  } catch (error) {
+    console.error('Error generating PDF report:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to generate PDF report',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// ========================================
+// REAL-TIME DASHBOARD ANALYTICS
+// ========================================
+
+// Get real-time dashboard analytics
+apiAnalyticsRoutes.get('/dashboard', requirePermission('analytics:view'), async (c) => {
+  try {
+    const analyticsEngine = initializeAnalyticsEngine(c);
+    
+    const dashboardAnalytics = await analyticsEngine.getDashboardAnalytics();
+    
+    return c.json({
+      success: true,
+      data: dashboardAnalytics,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting dashboard analytics:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to get dashboard analytics',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// ========================================
+// CUSTOM ANALYTICS QUERIES
+// ========================================
+
+// Execute custom analytics query (admin only)
+apiAnalyticsRoutes.post('/custom-query', requirePermission('analytics:admin'), async (c) => {
+  try {
+    const { DB } = c.env as { DB: D1Database };
+    const { query, parameters } = await c.req.json();
+    const userEmail = getCookie(c, 'user_email') || '';
+    
+    // Basic SQL injection protection
+    if (!query || typeof query !== 'string') {
+      return c.json({
+        success: false,
+        error: 'Invalid query format'
+      }, 400);
+    }
+    
+    // Only allow SELECT queries for safety
+    if (!query.trim().toUpperCase().startsWith('SELECT')) {
+      return c.json({
+        success: false,
+        error: 'Only SELECT queries are allowed'
+      }, 400);
+    }
+    
+    // Execute the query with parameters
+    const stmt = parameters ? DB.prepare(query).bind(...parameters) : DB.prepare(query);
+    const result = await stmt.all();
+    
+    console.log(`Custom analytics query executed by ${userEmail}:`, query.substring(0, 100));
+    
+    return c.json({
+      success: true,
+      data: {
+        results: result.results,
+        row_count: result.results?.length || 0,
+        execution_time: Date.now(), // Placeholder for actual execution time
+        query_preview: query.substring(0, 100) + (query.length > 100 ? '...' : '')
+      },
+      executed_at: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error executing custom query:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to execute custom query',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// ========================================
+// ANALYTICS METADATA
+// ========================================
+
+// Get available analytics capabilities and metadata
+apiAnalyticsRoutes.get('/metadata', requirePermission('analytics:view'), async (c) => {
+  try {
+    const { DB } = c.env as { DB: D1Database };
+    
+    // Get table schemas and row counts for analytics context
+    const tableInfo = await DB.prepare(`
+      SELECT name, type FROM sqlite_master 
+      WHERE type = 'table' 
+      AND name NOT LIKE 'sqlite_%'
+      ORDER BY name
+    `).all();
+    
+    const tableCounts = await Promise.all(
+      (tableInfo.results || []).map(async (table: any) => {
+        try {
+          const count = await DB.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).first();
+          return { table: table.name, row_count: count?.count || 0 };
+        } catch (error) {
+          return { table: table.name, row_count: 0 };
+        }
+      })
+    );
+    
+    return c.json({
+      success: true,
+      data: {
+        available_analyses: [
+          'Trend Analysis',
+          'Threat Landscape Analysis', 
+          'Risk Correlation Analysis',
+          'Executive Reporting',
+          'Real-time Dashboard Analytics'
+        ],
+        supported_periods: ['7d', '14d', '30d', '60d', '90d', '180d', '365d'],
+        database_schema: {
+          tables: tableInfo.results || [],
+          row_counts: tableCounts
+        },
+        analytics_capabilities: {
+          real_time_updates: true,
+          custom_queries: true,
+          executive_reports: true,
+          trend_analysis: true,
+          correlation_analysis: true,
+          threat_landscape: true,
+          pdf_export: false, // Coming soon
+          scheduled_reports: false // Coming soon
+        },
+        last_updated: new Date().toISOString()
       }
     });
   } catch (error) {
-    console.error('Error generating trend report:', error);
-    return c.json({ error: 'Failed to generate trend report' }, 500);
+    console.error('Error getting analytics metadata:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to get analytics metadata',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 });
 
-// Anomaly Detection API
-apiAnalyticsRoutes.get('/anomalies', requirePermission('analytics:view'), async (c) => {
-  try {
-    const anomalies = await mlService.getAnomalyAnalysis();
-    return c.json(anomalies);
-  } catch (error) {
-    console.error('Error getting anomalies:', error);
-    return c.json({ error: 'Failed to get anomalies' }, 500);
-  }
-});
+// ========================================
+// PERFORMANCE METRICS
+// ========================================
 
-apiAnalyticsRoutes.post('/anomalies/detect', requirePermission('analytics:create'), async (c) => {
+// Get analytics performance metrics
+apiAnalyticsRoutes.get('/performance', requirePermission('analytics:view'), async (c) => {
   try {
-    const userEmail = getCookie(c, 'user_email') || '';
-    const result = await mlService.runAnomalyDetection(userEmail);
-    return c.json(result);
-  } catch (error) {
-    console.error('Error running anomaly detection:', error);
-    return c.json({ error: 'Failed to run anomaly detection' }, 500);
-  }
-});
-
-apiAnalyticsRoutes.post('/anomalies/:id/investigate', requirePermission('analytics:manage'), async (c) => {
-  try {
-    const id = c.req.param('id');
-    const userEmail = getCookie(c, 'user_email') || '';
+    const { DB } = c.env as { DB: D1Database };
+    const days = parseInt(c.req.query('days') || '7');
     
-    const result = await mlService.updateAnomalyStatus(id, 'investigating', userEmail);
-    return c.json(result);
-  } catch (error) {
-    console.error('Error updating anomaly status:', error);
-    return c.json({ error: 'Failed to update anomaly status' }, 500);
-  }
-});
-
-apiAnalyticsRoutes.post('/anomalies/:id/resolve', requirePermission('analytics:manage'), async (c) => {
-  try {
-    const id = c.req.param('id');
-    const userEmail = getCookie(c, 'user_email') || '';
+    // Get performance statistics
+    const performanceData = await DB.prepare(`
+      SELECT 
+        DATE(created_at) as date,
+        COUNT(*) as operations_count,
+        'analytics' as operation_type
+      FROM (
+        SELECT created_at FROM risks 
+        UNION ALL 
+        SELECT created_at FROM ti_indicators
+        UNION ALL
+        SELECT created_at FROM risk_validations
+      )
+      WHERE DATE(created_at) >= DATE('now', '-${days} days')
+      GROUP BY DATE(created_at)
+      ORDER BY date DESC
+    `).all();
     
-    const result = await mlService.updateAnomalyStatus(id, 'resolved', userEmail);
-    return c.json(result);
-  } catch (error) {
-    console.error('Error resolving anomaly:', error);
-    return c.json({ error: 'Failed to resolve anomaly' }, 500);
-  }
-});
-
-// Model Management API
-apiAnalyticsRoutes.get('/models', requirePermission('analytics:view'), async (c) => {
-  try {
-    const models = await mlService.getMLModels();
-    return c.json(models);
-  } catch (error) {
-    console.error('Error getting ML models:', error);
-    return c.json({ error: 'Failed to get ML models' }, 500);
-  }
-});
-
-apiAnalyticsRoutes.post('/models/train', requirePermission('analytics:manage'), async (c) => {
-  try {
-    const userEmail = getCookie(c, 'user_email') || '';
-    const { modelType } = await c.req.json();
+    // Calculate system health indicators
+    const healthMetrics = await DB.prepare(`
+      SELECT 
+        (SELECT COUNT(*) FROM ti_sources WHERE status = 'active') * 100.0 / 
+        NULLIF((SELECT COUNT(*) FROM ti_sources), 0) as ti_sources_health,
+        
+        (SELECT COUNT(*) FROM risks WHERE validation_status != 'pending') * 100.0 / 
+        NULLIF((SELECT COUNT(*) FROM risks), 0) as validation_efficiency,
+        
+        (SELECT COUNT(*) FROM risks WHERE ti_enriched = TRUE) * 100.0 / 
+        NULLIF((SELECT COUNT(*) FROM risks), 0) as ti_enhancement_rate
+    `).first();
     
-    const result = await mlService.trainModel(modelType, userEmail);
-    return c.json(result);
+    return c.json({
+      success: true,
+      data: {
+        performance_period: `${days} days`,
+        daily_operations: performanceData.results || [],
+        system_health: {
+          ti_sources_health: Math.round((healthMetrics?.ti_sources_health || 0) * 10) / 10,
+          validation_efficiency: Math.round((healthMetrics?.validation_efficiency || 0) * 10) / 10,
+          ti_enhancement_rate: Math.round((healthMetrics?.ti_enhancement_rate || 0) * 10) / 10,
+          overall_score: Math.round(((healthMetrics?.ti_sources_health || 0) + 
+                                   (healthMetrics?.validation_efficiency || 0) + 
+                                   (healthMetrics?.ti_enhancement_rate || 0)) / 3 * 10) / 10
+        },
+        generated_at: new Date().toISOString()
+      }
+    });
   } catch (error) {
-    console.error('Error training model:', error);
-    return c.json({ error: 'Failed to train model' }, 500);
-  }
-});
-
-// Compliance Analytics API
-apiAnalyticsRoutes.get('/compliance', requirePermission('analytics:view'), async (c) => {
-  try {
-    const compliance = await mlService.analyzeComplianceGaps();
-    return c.json(compliance);
-  } catch (error) {
-    console.error('Error getting compliance analysis:', error);
-    return c.json({ error: 'Failed to get compliance analysis' }, 500);
-  }
-});
-
-// Asset Risk Analysis API
-apiAnalyticsRoutes.get('/asset-risk', requirePermission('analytics:view'), async (c) => {
-  try {
-    const assetRisk = await mlService.analyzeAssetRisk();
-    return c.json(assetRisk);
-  } catch (error) {
-    console.error('Error getting asset risk analysis:', error);
-    return c.json({ error: 'Failed to get asset risk analysis' }, 500);
-  }
-});
-
-apiAnalyticsRoutes.get('/asset-risk/:assetId', requirePermission('analytics:view'), async (c) => {
-  try {
-    const assetId = c.req.param('assetId');
-    const assetRisk = await mlService.getAssetRiskProfile(assetId);
-    
-    if (!assetRisk) {
-      return c.json({ error: 'Asset not found' }, 404);
-    }
-    
-    return c.json(assetRisk);
-  } catch (error) {
-    console.error('Error getting asset risk profile:', error);
-    return c.json({ error: 'Failed to get asset risk profile' }, 500);
+    console.error('Error getting performance metrics:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to get performance metrics',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 });
 

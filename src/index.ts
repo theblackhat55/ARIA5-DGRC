@@ -1,348 +1,565 @@
-import { Hono } from 'hono'
-import { cors } from 'hono/cors'
-import { serveStatic } from 'hono/cloudflare-workers'
-import phase1Api from './routes/phase1-api'
-import enhancedRiskEngineApi from './routes/enhanced-risk-engine-api'
-import dynamicRiskAnalysisApi from './routes/api-dynamic-risk-analysis'
-import dynamicRiskDashboardRoutes from './routes/dynamic-risk-dashboard-routes'
-import { apiThreatIntelRoutes } from './routes/api-threat-intelligence'
-import { apiEnhancedRiskEngineRoutes } from './routes/api-enhanced-risk-engine'
-import { apiServicesRoutes } from './routes/api-services'
+// ARIA5.1 - Clean HTMX + Hono Application (Rebuilt from scratch)
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { secureHeaders } from 'hono/secure-headers';
+import { html } from 'hono/html';
+import { serveStatic } from 'hono/cloudflare-workers';
+import { getCookie } from 'hono/cookie';
 
-type Bindings = {
-  DB: D1Database;
-  AI?: any; // Cloudflare AI binding for enhanced features
-}
+// Import clean route handlers
+import { createAuthRoutes } from './routes/auth-routes';
+import { createCleanDashboardRoutes } from './routes/dashboard-routes-clean';
+import { createRiskRoutesARIA5 } from './routes/risk-routes-aria5';
+import { createComplianceRoutes } from './routes/compliance-routes';
+import { createOperationsRoutes } from './routes/operations-fixed';
+import { createIntelligenceRoutes } from './routes/intelligence-routes';
+import { createAdminRoutesARIA5 } from './routes/admin-routes-aria5';
+import { createAPIRoutes } from './routes/api-routes';
+import { createAIAssistantRoutes } from './routes/ai-assistant-routes';
+import { createApiKeyRoutes } from './routes/api-key-routes';
+import { createPolicyManagementRoutes } from './routes/policy-management-routes';
+import { enhancedRiskRoutes } from './routes/enhanced-risk-routes';
+import { createRiskControlRoutes } from './routes/risk-control-routes';
+import { enhancedRiskEngineApi } from './routes/enhanced-risk-engine-api';
+import { createPhase1DashboardRoutes } from './routes/phase1-dashboard-routes';
+import { createPhase2DashboardRoutes } from './routes/phase2-dashboard-routes';
+import { createPhase3DashboardRoutes } from './routes/phase3-dashboard-routes';
+import { phase4EvidenceDashboard } from './routes/phase4-evidence-dashboard-routes';
+import { phase5ExecutiveDashboard } from './routes/phase5-executive-dashboard';
+import dynamicRiskDashboardRoutes from './routes/dynamic-risk-dashboard-routes';
 
-const app = new Hono<{ Bindings: Bindings }>()
+// Import new API routes to fix 404 errors
+import { threatIntelligenceApi } from './routes/threat-intelligence-api';
+import { validationApi } from './routes/validation-api';
+import { complianceServicesApi } from './routes/compliance-services-api';
+import { dynamicRiskAnalysisRoutes } from './routes/dynamic-risk-analysis-routes';
 
-// Enable CORS for frontend-backend communication
-app.use('/api/*', cors())
+// Import security middleware
+import { authMiddleware, requireRole, requireAdmin, csrfMiddleware } from './middleware/auth-middleware';
 
-// Serve static files from public directory
-app.use('/static/*', serveStatic({ root: './public' }))
+// Advanced Analytics & Enterprise Scale Routes
+import { mlAnalyticsRoutes } from './routes/ml-analytics';
+import { threatIntelRoutes } from './routes/threat-intelligence';
+import { incidentResponseRoutes } from './routes/incident-response';
+import { apiAnalyticsRoutes } from './routes/api-analytics';
+import { apiThreatIntelRoutes } from './routes/api-threat-intelligence';
+import { apiIncidentResponseRoutes } from './routes/api-incident-response';
 
-// Mount Phase 1 API routes
-app.route('/api', phase1Api)
+// Import clean templates
+import { cleanLayout } from './templates/layout-clean';
+import { loginPage } from './templates/auth/login';
+import { landingPage } from './templates/landing';
 
-// Mount Enhanced Risk Engine API routes
-app.route('/api/enhanced-risk-engine', enhancedRiskEngineApi)
-app.route('/api/v2/risk-engine', enhancedRiskEngineApi) // Alternative path
+const app = new Hono();
 
-// Mount TI-Enhanced Risk Management API routes (Phase 2 & 3)
-app.route('/api/threat-intelligence', apiThreatIntelRoutes)
-app.route('/api/enhanced-risk', apiEnhancedRiskEngineRoutes)
-app.route('/api/services', apiServicesRoutes)
+// Security middleware (applied to all routes)
+app.use('*', logger());
+app.use('*', cors({
+  origin: ['https://dynamic-risk-intelligence.pages.dev', 'https://*.dynamic-risk-intelligence.pages.dev', 'https://7405e4a5.dynamic-risk-intelligence.pages.dev'],
+  credentials: true
+}));
+app.use('*', secureHeaders({
+  contentSecurityPolicy: {
+    defaultSrc: ["'self'"],
+    styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com"],
+    scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://unpkg.com"],
+    imgSrc: ["'self'", "data:", "https:"],
+    fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/"],
+    connectSrc: ["'self'"]
+  },
+  crossOriginEmbedderPolicy: false
+}));
 
-// Mount Dynamic Risk Analysis API routes
-app.route('/api/dynamic-risk-analysis', dynamicRiskAnalysisApi)
+// CSRF protection for state-changing operations
+app.use('/auth/logout', csrfMiddleware);
+app.use('/admin/*', csrfMiddleware);
+app.use('/api/users/*', csrfMiddleware);
+app.use('/api/keys/*', csrfMiddleware);
 
-// Mount Dynamic Risk Dashboard UI routes
-app.route('/dynamic-risk', dynamicRiskDashboardRoutes)
+// Mount new API routes to fix 404 errors
+app.route('/api/threat-intelligence', threatIntelligenceApi);
+app.route('/api/validation', validationApi);
+app.route('/api/compliance', complianceServicesApi);
+app.route('/api/services', complianceServicesApi);
 
-// Default route - Dynamic Risk Intelligence Platform Dashboard
-app.get('/', (c) => {
+// Serve static files
+app.get('/static/*', serveStatic({ root: './' }));
+app.get('/htmx/*', serveStatic({ root: './' }));
+
+// Health check
+app.get('/health', (c) => {
+  return c.json({
+    status: 'healthy',
+    version: '5.1.0-clean',
+    mode: 'Clean HTMX',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Landing page route (public) - EMERGENCY: Bypass auth for testing
+app.get('/', async (c) => {
+  // EMERGENCY: Always redirect to risk management for testing
+  return c.redirect('/risk');
+});
+
+// Home route alias (for backward compatibility)
+app.get('/home', async (c) => {
+  return c.redirect('/');
+});
+
+// Login page (public)
+app.get('/login', (c) => {
+  const token = getCookie(c, 'aria_token');
+  
+  // If already authenticated, redirect to dashboard
+  if (token) {
+    return c.redirect('/dashboard');
+  }
+  
+  return c.html(loginPage());
+});
+
+// Simple login page for debugging authentication issues
+app.get('/simple-login.html', async (c) => {
   return c.html(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-        <title>Enhanced Risk Engine - ARIA5.1 Platform</title>
-        
-        <!-- Progressive Web App Meta Tags -->
-        <meta name="application-name" content="Enhanced Risk Engine">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="default">
-        <meta name="apple-mobile-web-app-title" content="Risk Engine">
-        <meta name="description" content="AI-native risk intelligence with explainable scoring and service indices">
-        <meta name="format-detection" content="telephone=no">
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="msapplication-TileColor" content="#3b82f6">
-        <meta name="msapplication-tap-highlight" content="no">
-        <meta name="theme-color" content="#3b82f6">
-        
-        <!-- PWA Manifest -->
-        <link rel="manifest" href="/manifest.json">
-        
-        <!-- Apple Touch Icons -->
-        <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180' fill='%233b82f6'><circle cx='90' cy='90' r='80' fill='%23ffffff'/><path d='M90 20C54.183 20 25 49.183 25 85s29.183 65 65 65 65-29.183 65-65S125.817 20 90 20zm26 78H64c-3.314 0-6-2.686-6-6s2.686-6 6-6h52c3.314 0 6 2.686 6 6s-2.686 6-6 6zm0-26H64c-3.314 0-6-2.686-6-6s2.686-6 6-6h52c3.314 0 6 2.686 6 6s-2.686 6-6 6z'/></svg>">
-        
-        <!-- Essential CSS -->
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <link href="/static/styles.css" rel="stylesheet">
-        
-        <!-- Mobile Enhanced Styles -->
-        <link href="/static/mobile-enhanced-styles.css" rel="stylesheet">
-        
-        <!-- Preload Critical Resources -->
-        <link rel="preload" href="/static/enhanced-risk-dashboard.js" as="script">
-        <link rel="preload" href="/static/enhanced-risk-dashboard-mobile.js" as="script">
-        <script>
-          tailwind.config = {
-            theme: {
-              extend: {
-                colors: {
-                  'risk-low': '#10B981',
-                  'risk-medium': '#F59E0B', 
-                  'risk-high': '#EF4444',
-                  'risk-critical': '#DC2626'
-                }
-              }
-            }
-          }
-        </script>
-    </head>
-    <body class="bg-gray-50 min-h-screen">
-        <!-- Navigation Header -->
-        <nav class="bg-white shadow-lg border-b">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16">
-                    <div class="flex items-center">
-                        <i class="fas fa-shield-alt text-2xl text-blue-600 mr-3"></i>
-                        <h1 class="text-xl font-bold text-gray-900">Dynamic Risk Intelligence Platform</h1>
-                        <span class="ml-3 px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full">Phase 1</span>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <div id="system-health" class="flex items-center">
-                            <div class="w-3 h-3 rounded-full bg-gray-400 mr-2"></div>
-                            <span class="text-sm text-gray-600">Loading...</span>
-                        </div>
-                        <button id="manual-execute" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-                            <i class="fas fa-play mr-1"></i> Execute Cycle
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Main Dashboard -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Loading State -->
-            <div id="loading" class="text-center py-12">
-                <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-blue-600 bg-blue-100">
-                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Loading Phase 1 Dashboard...
-                </div>
-            </div>
-
-            <!-- Dashboard Content -->
-            <div id="dashboard" class="hidden">
-                <!-- Key Metrics Overview -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-search text-2xl text-blue-600"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Discovery Automation</dt>
-                                        <dd class="text-lg font-medium text-gray-900" id="discovery-rate">--%</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-clock text-2xl text-green-600"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Update Latency</dt>
-                                        <dd class="text-lg font-medium text-gray-900" id="update-latency">-- min</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-check-circle text-2xl text-purple-600"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Approval Efficiency</dt>
-                                        <dd class="text-lg font-medium text-gray-900" id="approval-efficiency">--%</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-service text-2xl text-red-600"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Services Monitored</dt>
-                                        <dd class="text-lg font-medium text-gray-900" id="services-count">--</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Service Risk Overview -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                    <!-- Service Risk Distribution -->
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="px-4 py-5 sm:p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">
-                                <i class="fas fa-chart-pie mr-2"></i>
-                                Service Risk Distribution
-                            </h3>
-                            <canvas id="risk-distribution-chart" width="400" height="300"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Risk Trend -->
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="px-4 py-5 sm:p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">
-                                <i class="fas fa-chart-line mr-2"></i>
-                                Risk Trend Analysis
-                            </h3>
-                            <canvas id="risk-trend-chart" width="400" height="300"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Services Table -->
-                <div class="bg-white shadow overflow-hidden sm:rounded-md mb-8">
-                    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">
-                            <i class="fas fa-server mr-2"></i>
-                            Business Services Risk Assessment
-                        </h3>
-                        <p class="mt-1 max-w-2xl text-sm text-gray-500">
-                            Real-time service-centric risk scoring with CIA triad analysis
-                        </p>
-                    </div>
-                    <ul id="services-list" class="divide-y divide-gray-200">
-                        <!-- Services will be populated here -->
-                    </ul>
-                </div>
-
-                <!-- Component Status -->
-                <div class="bg-white shadow overflow-hidden sm:rounded-md">
-                    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">
-                            <i class="fas fa-cogs mr-2"></i>
-                            Component Health Status
-                        </h3>
-                    </div>
-                    <div id="component-status" class="p-6">
-                        <!-- Component status will be populated here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Error State -->
-            <div id="error" class="hidden text-center py-12">
-                <div class="bg-red-50 border border-red-200 rounded-md p-4 max-w-md mx-auto">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-exclamation-triangle text-red-400"></i>
-                        </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-medium text-red-800">
-                                Unable to load dashboard
-                            </h3>
-                            <p class="mt-2 text-sm text-red-700" id="error-message">
-                                Please check the system status and try again.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARIA5.1 - Simple Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+      <div class="text-center">
+        <div class="mx-auto h-20 w-20 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 mb-6">
+          <i class="fas fa-shield-alt text-3xl text-white"></i>
         </div>
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">ARIA5.1 Platform</h2>
+        <p class="mt-2 text-center text-sm text-gray-600">Service Intelligence & Asset Management</p>
+      </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js"></script>
-        <!-- Enhanced Risk Dashboard Integration -->
-        <script src="/static/enhanced-risk-dashboard.js"></script>
+      <div class="bg-white rounded-xl shadow-lg p-8">
+        <div id="login-messages"></div>
         
-        <!-- Mobile Enhanced Risk Dashboard Integration -->
-        <script src="/static/enhanced-risk-dashboard-mobile.js"></script>
-        
-        <!-- PWA Service Worker Registration -->
-        <script>
-          console.log('Enhanced Risk Dashboard loaded - native integration active');
+        <form hx-post="/auth/login" hx-target="#login-messages" hx-swap="innerHTML" class="space-y-6">
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-user mr-2"></i>Username
+            </label>
+            <input id="username" name="username" type="text" required 
+                   class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:z-10 sm:text-sm"
+                   placeholder="Enter your username" value="">
+          </div>
           
-          // Register Service Worker for PWA functionality
-          if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-              navigator.serviceWorker.register('/sw.js')
-                .then((registration) => {
-                  console.log('SW registered: ', registration);
-                  
-                  // Check for updates
-                  registration.addEventListener('updatefound', () => {
-                    const newWorker = registration.installing;
-                    newWorker.addEventListener('statechange', () => {
-                      if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // Show update available notification
-                        if (confirm('New version available. Update now?')) {
-                          newWorker.postMessage({ action: 'skipWaiting' });
-                          window.location.reload();
-                        }
-                      }
-                    });
-                  });
-                })
-                .catch((registrationError) => {
-                  console.log('SW registration failed: ', registrationError);
-                });
-            });
-          }
-          
-          // Initialize mobile-specific features after DOM load
-          document.addEventListener('DOMContentLoaded', () => {
-            // Detect if mobile device
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                            (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform));
-            
-            if (isMobile && typeof MobileEnhancedRiskDashboard !== 'undefined') {
-              console.log('Initializing Mobile Enhanced Risk Dashboard');
-              window.mobileRiskDashboard = new MobileEnhancedRiskDashboard();
-            }
-            
-            // Add mobile-specific viewport handling
-            if (isMobile) {
-              const viewport = document.querySelector('meta[name="viewport"]');
-              if (viewport) {
-                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
-              }
-              
-              // Prevent zoom on input focus (iOS Safari)
-              document.addEventListener('touchstart', {}, true);
-              
-              // Add mobile class to body
-              document.body.classList.add('mobile-device');
-            }
-          });
-        </script>
-    </body>
-    </html>
-  `)
-})
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-lock mr-2"></i>Password
+            </label>
+            <input id="password" name="password" type="password" required 
+                   class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:z-10 sm:text-sm"
+                   placeholder="Enter your password">
+          </div>
 
-export default app
+          <div>
+            <button type="submit" 
+                    class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200">
+              <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                <i class="fas fa-sign-in-alt text-indigo-300 group-hover:text-indigo-200"></i>
+              </span>
+              Sign In
+            </button>
+          </div>
+        </form>
+
+        <div class="mt-8 border-t border-gray-200 pt-6">
+          <h3 class="text-sm font-medium text-gray-700 mb-4">
+            <i class="fas fa-users mr-2"></i>Demo Accounts
+          </h3>
+          <div class="space-y-3 text-sm">
+            <div class="bg-gray-50 rounded-lg p-3">
+              <div class="flex justify-between items-center">
+                <div>
+                  <strong class="text-gray-900">Admin User</strong>
+                  <div class="text-gray-600">Full system access</div>
+                </div>
+                <button onclick="fillCredentials('admin', 'demo123')"
+                        class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition">
+                  Use
+                </button>
+              </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-3">
+              <div class="flex justify-between items-center">
+                <div>
+                  <strong class="text-gray-900">Security Manager</strong>
+                  <div class="text-gray-600">Risk & service management</div>
+                </div>
+                <button onclick="fillCredentials('avi_security', 'demo123')"
+                        class="px-3 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200 transition">
+                  Use
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center text-sm text-gray-600">
+        <p>
+          <a href="/health" class="text-indigo-600 hover:text-indigo-500">System Health</a> |
+          <a href="/operations" class="text-indigo-600 hover:text-indigo-500">Operations Center</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function fillCredentials(username, password) {
+      document.getElementById('username').value = username;
+      document.getElementById('password').value = password;
+    }
+
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+      if (evt.detail.xhr.status === 200 && evt.detail.requestConfig.path === '/auth/login') {
+        const redirectUrl = evt.detail.xhr.getResponseHeader('HX-Redirect');
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+        }
+      }
+    });
+
+    document.body.addEventListener('loginSuccess', function() {
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
+    });
+  </script>
+</body>
+</html>
+  `);
+});
+
+// Test page to verify dropdowns work
+app.get('/test', (c) => {
+  const testUser = { username: 'test', role: 'admin', firstName: 'Test' };
+  
+  return c.html(
+    cleanLayout({
+      title: 'Dropdown Test',
+      user: testUser,
+      content: html`
+        <div class="min-h-screen bg-gray-50 py-12">
+          <div class="max-w-4xl mx-auto px-4">
+            <div class="bg-white rounded-xl shadow-lg p-8">
+              <h1 class="text-3xl font-bold text-gray-900 mb-6">Dropdown Functionality Test</h1>
+              
+              <div class="space-y-4">
+                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h2 class="text-lg font-semibold text-green-800 mb-2">✅ Test Instructions</h2>
+                  <ul class="text-green-700 space-y-1">
+                    <li>1. Click on navigation dropdown buttons (Overview, Risk, Compliance, Admin, Notifications)</li>
+                    <li>2. Verify dropdowns open and close properly</li>
+                    <li>3. Check that only one dropdown opens at a time</li>
+                    <li>4. Confirm clicking outside closes dropdowns</li>
+                    <li>5. Test all navigation links work (Operations, Intelligence should now work!)</li>
+                    <li>6. Test dropdown functionality in modals/other pages</li>
+                  </ul>
+                </div>
+                
+                <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                  <h2 class="text-lg font-semibold text-purple-800 mb-2">🔄 HTMX Dropdown Test</h2>
+                  <p class="text-purple-700 mb-4">Test dropdowns in HTMX-loaded content:</p>
+                  <button hx-get="/test/modal" 
+                          hx-target="#modal-test" 
+                          hx-swap="innerHTML"
+                          class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    Load HTMX Modal with Dropdown
+                  </button>
+                  <div id="modal-test" class="mt-4 p-4 bg-white border border-purple-200 rounded-lg"></div>
+                </div>
+                
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h2 class="text-lg font-semibold text-blue-800 mb-2">🔍 Console Check</h2>
+                  <p class="text-blue-700">Open browser DevTools → Console and look for:</p>
+                  <ul class="text-blue-700 mt-2 space-y-1">
+                    <li>• "✅ ARIA5 dropdowns initialized"</li>
+                    <li>• "🎯 Dropdown opened/closed" messages when clicking</li>
+                    <li>• No JavaScript errors or warnings</li>
+                  </ul>
+                </div>
+                
+                <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                  <h2 class="text-lg font-semibold text-purple-800 mb-2">🚀 Navigation Test</h2>
+                  <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                    <a href="/dashboard" class="bg-blue-500 text-white px-4 py-2 rounded text-center hover:bg-blue-600">Dashboard</a>
+                    <a href="/risk" class="bg-red-500 text-white px-4 py-2 rounded text-center hover:bg-red-600">Risk Register</a>
+                    <a href="/compliance" class="bg-green-500 text-white px-4 py-2 rounded text-center hover:bg-green-600">Compliance</a>
+                    <a href="/admin" class="bg-purple-500 text-white px-4 py-2 rounded text-center hover:bg-purple-600">Admin</a>
+                    <a href="/reports" class="bg-indigo-500 text-white px-4 py-2 rounded text-center hover:bg-indigo-600">Reports</a>
+                    <a href="/operations" class="bg-orange-500 text-white px-4 py-2 rounded text-center hover:bg-orange-600">Operations</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+    })
+  );
+});
+
+// Test modal endpoint for HTMX dropdown testing
+app.get('/test/modal', (c) => {
+  return c.html(html`
+    <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <h3 class="text-lg font-semibold text-blue-800 mb-4">HTMX-Loaded Content with Dropdown</h3>
+      <p class="text-blue-700 mb-4">This content was loaded via HTMX. Test the dropdown below:</p>
+      
+      <!-- Test dropdown in HTMX content -->
+      <div class="relative" data-dropdown>
+        <button data-dropdown-button class="flex items-center space-x-1 text-gray-700 hover:text-blue-600 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium transition-colors">
+          <i class="fas fa-cog mr-1"></i>
+          <span>HTMX Test Dropdown</span>
+          <i class="fas fa-chevron-down text-xs"></i>
+        </button>
+        <div data-dropdown-menu class="dropdown-menu absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+          <div class="py-2">
+            <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+              <i class="fas fa-check w-5 text-green-500 mr-3"></i>
+              <div>
+                <div class="font-medium">Option 1</div>
+                <div class="text-xs text-gray-500">This dropdown works in HTMX content</div>
+              </div>
+            </a>
+            <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+              <i class="fas fa-star w-5 text-yellow-500 mr-3"></i>
+              <div>
+                <div class="font-medium">Option 2</div>
+                <div class="text-xs text-gray-500">Dropdowns re-initialize after HTMX swaps</div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+        <p class="text-green-700 text-sm">
+          ✅ <strong>Success!</strong> If this dropdown works, then HTMX dropdown re-initialization is working correctly.
+        </p>
+      </div>
+    </div>
+  `);
+});
+
+// Mount route groups with authentication
+const authRoutes = createAuthRoutes();
+const dashboardRoutes = createCleanDashboardRoutes();
+const riskRoutes = createRiskRoutesARIA5();
+const complianceRoutes = createComplianceRoutes();
+const operationsRoutes = createOperationsRoutes();
+const intelligenceRoutes = createIntelligenceRoutes();
+const adminRoutes = createAdminRoutesARIA5();
+const apiRoutes = createAPIRoutes();
+const aiRoutes = createAIAssistantRoutes();
+const apiKeyRoutes = createApiKeyRoutes();
+const policyRoutes = createPolicyManagementRoutes();
+
+// Public routes (no authentication required)
+app.route('/auth', authRoutes);
+
+// Protected routes (require authentication)
+app.use('/dashboard/*', authMiddleware);
+app.route('/dashboard', dashboardRoutes);
+
+app.use('/risk/*', authMiddleware);
+app.route('/risk', riskRoutes);
+app.route('/risk', enhancedRiskRoutes);
+
+// Risk-Control Mapping Routes
+app.use('/risk-controls/*', authMiddleware);
+const riskControlRoutes = createRiskControlRoutes();
+app.route('/risk-controls', riskControlRoutes);
+
+app.use('/compliance/*', authMiddleware);
+app.route('/compliance', complianceRoutes);
+
+app.use('/operations/*', authMiddleware);
+app.route('/operations', operationsRoutes);
+
+// Direct asset and document routes (protected)
+app.get('/assets', authMiddleware, async (c) => {
+  return c.redirect('/operations/assets');
+});
+
+app.get('/documents', authMiddleware, async (c) => {
+  return c.redirect('/operations/documents');
+});
+
+// Intelligence routes (require authentication)
+app.use('/intelligence/*', authMiddleware);
+app.route('/intelligence', intelligenceRoutes);
+
+// Reports route - redirect to intelligence reports (protected)
+app.get('/reports', authMiddleware, async (c) => {
+  return c.redirect('/intelligence/reports');
+});
+
+// Admin routes (require admin role)
+app.use('/admin/*', authMiddleware);
+app.use('/admin/*', requireAdmin);
+app.route('/admin', adminRoutes);
+
+// API routes (require authentication)
+app.use('/api/*', authMiddleware);
+app.route('/api', apiRoutes);
+
+// Enhanced Risk Engine API routes (require authentication)
+app.use('/api/enhanced-risk-engine/*', authMiddleware);
+app.route('/api/enhanced-risk-engine', enhancedRiskEngineApi);
+
+// Phase Dashboard routes (require authentication)
+app.use('/phase1/*', authMiddleware);
+const phase1Routes = createPhase1DashboardRoutes();
+app.route('/phase1', phase1Routes);
+
+app.use('/phase2/*', authMiddleware);
+const phase2Routes = createPhase2DashboardRoutes();
+app.route('/phase2', phase2Routes);
+
+app.use('/phase3/*', authMiddleware);
+const phase3Routes = createPhase3DashboardRoutes();
+app.route('/phase3', phase3Routes);
+
+app.use('/phase4/*', authMiddleware);
+app.route('/phase4', phase4EvidenceDashboard);
+
+app.use('/phase5/*', authMiddleware);
+app.route('/phase5', phase5ExecutiveDashboard);
+
+// Mount dynamic risk analysis route to fix 404
+app.use('/dynamic-risk-analysis/*', authMiddleware);
+app.route('/dynamic-risk-analysis', dynamicRiskAnalysisRoutes);
+
+// Dynamic Risk Analysis routes (require authentication)
+app.use('/dynamic-risk-analysis/*', authMiddleware);
+app.route('/dynamic-risk-analysis', dynamicRiskDashboardRoutes);
+
+// API Key management routes (require authentication)
+app.use('/api/keys/*', authMiddleware);
+app.route('/api/keys', apiKeyRoutes);
+
+// AI Assistant routes (require authentication)
+app.use('/ai/*', authMiddleware);
+app.route('/ai', aiRoutes);
+
+// Policy Management routes (require authentication)
+app.use('/policies/*', authMiddleware);
+app.route('/policies', policyRoutes);
+
+// Advanced Analytics & Enterprise Scale Routes (protected)
+app.use('/analytics/*', authMiddleware);
+app.route('/analytics', mlAnalyticsRoutes);
+
+app.use('/threat-intel/*', authMiddleware);
+app.route('/threat-intel', threatIntelRoutes);
+
+app.use('/incident-response/*', authMiddleware);
+app.route('/incident-response', incidentResponseRoutes);
+
+// Advanced Analytics & Enterprise Scale API Routes (protected)
+app.use('/api/analytics/*', authMiddleware);
+app.route('/api/analytics', apiAnalyticsRoutes);
+
+app.use('/api/threat-intel/*', authMiddleware);
+app.route('/api/threat-intel', apiThreatIntelRoutes);
+
+app.use('/api/incident-response/*', authMiddleware);
+app.route('/api/incident-response', apiIncidentResponseRoutes);
+
+// Clean 404 handler - NO full page layout to prevent injection
+app.notFound((c) => {
+  // Check if this is an HTMX request
+  const htmxRequest = c.req.header('HX-Request');
+  
+  if (htmxRequest) {
+    // Return simple error for HTMX requests
+    return c.html('<div class="text-gray-500 text-center p-4">Content not available</div>', 404);
+  }
+  
+  // Full page 404 for regular requests
+  return c.html(
+    cleanLayout({
+      title: '404 - Page Not Found',
+      content: html`
+        <div class="flex items-center justify-center min-h-screen">
+          <div class="text-center">
+            <h1 class="text-6xl font-bold text-gray-200">404</h1>
+            <p class="text-xl text-gray-600 mt-4">Page not found</p>
+            <a href="/dashboard" class="mt-6 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              Go to Dashboard
+            </a>
+          </div>
+        </div>
+      `
+    }),
+    404
+  );
+});
+
+// Missing general routes (to fix 404 errors)
+app.get('/predictions', authMiddleware, async (c) => {
+  return c.redirect('/phase2/');
+});
+
+app.get('/telemetry', authMiddleware, async (c) => {
+  return c.redirect('/operations/intelligence-settings');
+});
+
+app.get('/evidence', authMiddleware, async (c) => {
+  return c.redirect('/phase4/');
+});
+
+app.get('/ai-analytics', authMiddleware, async (c) => {
+  return c.redirect('/intelligence/behavioral-analytics');
+});
+
+// Clean error handler
+app.onError((err, c) => {
+  console.error(`Error: ${err}`);
+  
+  // Check if this is an HTMX request
+  const htmxRequest = c.req.header('HX-Request');
+  
+  if (htmxRequest) {
+    // Return simple error for HTMX requests
+    return c.html('<div class="text-red-500 text-center p-4">Server error. Please try again.</div>', 500);
+  }
+  
+  // Full page error for regular requests
+  return c.html(
+    cleanLayout({
+      title: 'Error',
+      content: html`
+        <div class="flex items-center justify-center min-h-screen">
+          <div class="text-center">
+            <h1 class="text-4xl font-bold text-red-600">Error</h1>
+            <p class="text-gray-600 mt-4">Something went wrong. Please try again.</p>
+            <a href="/dashboard" class="mt-6 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              Go to Dashboard
+            </a>
+          </div>
+        </div>
+      `
+    }),
+    500
+  );
+});
+
+export default app;
