@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireAuth } from './auth-routes';
+// Removed requireAuth import - authentication handled externally
 
 export function createAPIRoutes() {
   const app = new Hono();
@@ -15,7 +15,8 @@ export function createAPIRoutes() {
   });
   
   // Apply authentication to other routes
-  app.use('*', requireAuth);
+  // Authentication is handled externally in index.ts via authMiddleware
+  // Removed internal requireAuth to fix double authentication
   
   // Risks API
   app.get('/risks', async (c) => {

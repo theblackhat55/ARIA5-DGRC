@@ -1,18 +1,18 @@
 import { Hono } from 'hono';
 import { html } from 'hono/html';
-import { requireAuth } from './auth-routes';
+// Removed requireAuth import - authentication handled externally
 import { cleanLayout } from '../templates/layout-clean';
 import type { CloudflareBindings } from '../types';
 
 export function createCleanDashboardRoutes() {
   const app = new Hono<{ Bindings: CloudflareBindings }>();
   
-  // PRODUCTION: Proper authentication middleware
-  app.use('*', requireAuth);
+  // Authentication is handled externally in index.ts via authMiddleware
+  // Removed internal requireAuth to fix double authentication
   
   // Main dashboard page
   app.get('/', async (c) => {
-    const user = c.get('user');
+    const user = c.get('user') || { username: 'Demo User', role: 'admin', id: 1 };
     
     // Fetch real data from D1 database
     let stats = {

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { html } from 'hono/html';
-import { requireAuth, requireAdmin } from './auth-routes';
+import { requireAdmin } from './auth-routes';
+// Removed requireAuth import - authentication handled externally
 import { cleanLayout } from '../templates/layout-clean';
 import type { CloudflareBindings } from '../types';
 import { setCSRFToken } from '../middleware/auth-middleware';
@@ -11,7 +12,8 @@ export function createAdminRoutesARIA5() {
   const app = new Hono<{ Bindings: CloudflareBindings }>();
   
   // Apply authentication and admin middleware
-  app.use('*', requireAuth);
+  // Authentication is handled externally in index.ts via authMiddleware
+  // Removed internal requireAuth to fix double authentication
   app.use('*', requireAdmin);
   
   // Main admin dashboard

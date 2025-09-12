@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { html, raw } from 'hono/html';
-import { requireAuth } from './auth-routes';
+// Removed requireAuth import - authentication handled externally
 import { cleanLayout } from '../templates/layout-clean';
 import type { CloudflareBindings } from '../types';
 import LiveAIMLIntegration from '../services/live-ai-ml-integration';
@@ -9,7 +9,8 @@ export function createIntelligenceRoutes() {
   const app = new Hono<{ Bindings: CloudflareBindings }>();
   
   // Apply authentication middleware to all routes
-  app.use('*', requireAuth);
+  // Authentication is handled externally in index.ts via authMiddleware
+  // Removed internal requireAuth to fix double authentication
   
   // Main intelligence dashboard - NOW WITH DYNAMIC DATA
   app.get('/', async (c) => {

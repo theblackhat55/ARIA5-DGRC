@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { html, raw } from 'hono/html';
-import { requireAuth } from './auth-routes';
+// Removed requireAuth import - authentication handled externally
 import { cleanLayout } from '../templates/layout-clean';
 import { renderIntelligenceSettings, getThreatFeeds, getThreatFeedById, testThreatFeed } from './intelligence-settings';
 import { createServiceCriticalityAPI } from './api-service-criticality';
@@ -10,7 +10,8 @@ export function createOperationsRoutes() {
   const app = new Hono<{ Bindings: CloudflareBindings }>();
   
   // Apply authentication middleware to all routes
-  app.use('*', requireAuth);
+  // Authentication is handled externally in index.ts via authMiddleware
+  // Removed internal requireAuth to fix double authentication
   
   // Main operations dashboard
   app.get('/', async (c) => {

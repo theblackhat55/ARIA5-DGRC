@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { html } from 'hono/html';
-import { requireAuth } from './auth-routes';
+// Removed requireAuth import - authentication handled externally
 import { cleanLayout } from '../templates/layout-clean';
 
 type CloudflareBindings = {
@@ -10,8 +10,8 @@ type CloudflareBindings = {
 export function createComplianceRoutes() {
   const app = new Hono<{ Bindings: CloudflareBindings }>();
   
-  // Apply authentication middleware
-  app.use('*', requireAuth);
+  // Authentication is handled externally in index.ts via authMiddleware
+  // Removed internal requireAuth to fix double authentication
 
   // Main Compliance Dashboard - Redirect to Framework Management
   app.get('/', async (c) => {
