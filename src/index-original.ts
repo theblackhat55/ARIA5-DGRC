@@ -48,10 +48,6 @@ import { apiIncidentResponseRoutes } from './routes/api-incident-response';
 
 // Import clean templates
 import { cleanLayout } from './templates/layout-clean';
-
-// AI-NATIVE ENHANCEMENT: Add new AI-powered routes (NON-BREAKING)
-import aiInsightsRoutes from './routes/ai-insights-routes';
-import decisionCenterRoutes from './routes/decision-center-routes';
 import { loginPage } from './templates/auth/login';
 import { landingPage } from './templates/landing';
 
@@ -410,9 +406,9 @@ app.get('/documents', authMiddleware, async (c) => {
 app.use('/intelligence/*', authMiddleware);
 app.route('/intelligence', intelligenceRoutes);
 
-// Reports route - redirect to AI insights (AI-native enhancement)
+// Reports route - redirect to intelligence reports (protected)
 app.get('/reports', authMiddleware, async (c) => {
-  return c.redirect('/ai-insights');
+  return c.redirect('/intelligence/reports');
 });
 
 // Admin routes (require admin role)
@@ -515,18 +511,6 @@ app.notFound((c) => {
     }),
     404
   );
-});
-
-// AI-NATIVE ENHANCEMENT: Add new AI-powered routes (NON-BREAKING ADDITION)
-app.use('/ai-insights/*', authMiddleware);
-app.route('/ai-insights', aiInsightsRoutes);
-
-app.use('/decision-center/*', authMiddleware);
-app.route('/decision-center', decisionCenterRoutes);
-
-// Legacy route redirects for AI-native consolidation (NON-BREAKING)
-app.get('/analytics', authMiddleware, async (c) => {
-  return c.redirect('/ai-insights');
 });
 
 // Missing general routes (to fix 404 errors)
