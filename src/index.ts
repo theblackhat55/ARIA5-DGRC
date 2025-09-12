@@ -462,9 +462,9 @@ app.route('/phase5', phase5ExecutiveDashboard);
 app.use('/dynamic-risk-analysis/*', authMiddleware);
 app.route('/dynamic-risk-analysis', dynamicRiskAnalysisRoutes);
 
-// Dynamic Risk Analysis routes (require authentication)
+// Dynamic Risk Analysis routes (require authentication) - Fixed
 app.use('/dynamic-risk-analysis/*', authMiddleware);
-app.route('/dynamic-risk-analysis', dynamicRiskDashboardRoutes);
+app.route('/dynamic-risk-analysis', dynamicRiskAnalysisRoutes);
 
 // API Key management routes (require authentication)
 app.use('/api/keys/*', authMiddleware);
@@ -593,6 +593,15 @@ app.get('/evidence', authMiddleware, async (c) => {
 
 app.get('/ai-analytics', authMiddleware, async (c) => {
   return c.redirect('/intelligence/behavioral-analytics');
+});
+
+// Dynamic Risk Engine alias routes
+app.get('/dynamic-risk', authMiddleware, async (c) => {
+  return c.redirect('/dynamic-risk-analysis');
+});
+
+app.get('/risk-engine', authMiddleware, async (c) => {
+  return c.redirect('/dynamic-risk-analysis');
 });
 
 // Clean error handler
