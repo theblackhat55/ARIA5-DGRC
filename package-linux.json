@@ -1,0 +1,71 @@
+{
+  "name": "aria5-platform-linux",
+  "version": "5.1.0",
+  "description": "ARIA5.1 - Linux Server Risk Intelligence Platform",
+  "type": "module",
+  "main": "dist/server-linux.js",
+  "scripts": {
+    "build": "tsc && cp -r public dist/",
+    "build:prod": "tsc --build tsconfig.prod.json && cp -r public dist/",
+    "start": "node dist/server-linux.js",
+    "start:pm2": "pm2 start ecosystem-linux.config.js",
+    "dev": "tsx watch src/server-linux.ts",
+    "dev:debug": "tsx --inspect watch src/server-linux.ts", 
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist/",
+    "db:init": "node scripts/init-database.js",
+    "db:migrate": "node scripts/migrate-database.js",
+    "db:seed": "node scripts/seed-database.js",
+    "db:backup": "node scripts/backup-database.js",
+    "cache:flush": "node scripts/flush-cache.js",
+    "logs": "pm2 logs webapp-linux",
+    "restart": "pm2 restart webapp-linux",
+    "stop": "pm2 stop webapp-linux",
+    "status": "pm2 status",
+    "deploy": "npm run build:prod && pm2 restart ecosystem-linux.config.js"
+  },
+  "dependencies": {
+    "hono": "^4.9.6",
+    "@hono/node-server": "^1.12.2",
+    "better-sqlite3": "^9.4.0",
+    "redis": "^4.6.13",
+    "bcryptjs": "^3.0.2",
+    "marked": "^16.2.1",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "multer": "^1.4.5-lts.1",
+    "morgan": "^1.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/multer": "^1.4.11",
+    "@types/compression": "^1.7.5",
+    "@types/cors": "^2.8.17",
+    "tsx": "^4.7.2",
+    "typescript": "^5.9.2",
+    "vitest": "^1.6.1",
+    "@vitest/ui": "^1.6.1",
+    "happy-dom": "^14.12.3",
+    "pm2": "^5.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "risk-management",
+    "grc", 
+    "compliance",
+    "linux-server",
+    "enterprise",
+    "security",
+    "audit",
+    "node.js"
+  ],
+  "author": "ARIA5 Development Team",
+  "license": "MIT"
+}
